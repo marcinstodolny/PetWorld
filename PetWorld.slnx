@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PetWorld.Application/PetWorld.Application.csproj" Id="db294215-73e2-4d01-9a37-e477128dfe07" />
+    <Project Path="src/PetWorld.Domain/PetWorld.Domain.csproj" Id="1773d2c5-38eb-461e-bdc3-0501f3c12406" />
+    <Project Path="src/PetWorld.Infrastructure/PetWorld.Infrastructure.csproj" Id="824f20eb-42c7-46d5-9f6c-a0e0d6f3bfd0" />
+    <Project Path="src/PetWorld.Web/PetWorld.Web.csproj" Id="07f00bb4-9d14-4ec6-b347-e4e7b3b5a310" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PetWorld.Integration.Tests/PetWorld.Integration.Tests.csproj" Id="08f9fe31-b2be-48e6-8d48-e99606c1ba67" />
+    <Project Path="tests/PetWorld.Unit.Tests/PetWorld.Unit.Tests.csproj" Id="0994099a-e3e3-4531-8a62-0c4a6a021344" />
+  </Folder>
+</Solution>
