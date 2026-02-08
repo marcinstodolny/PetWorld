@@ -5,7 +5,7 @@ using PetWorld.Infrastructure.Persistence;
 
 namespace PetWorld.Infrastructure.Repositories;
 
-public sealed class EfProductRepository(PetWorldDbContext dbContext) : IProductRepository
+public sealed class ProductRepository(PetWorldDbContext dbContext) : IProductRepository
 {
     public async Task<IReadOnlyList<Product>> GetAllAsync(CancellationToken cancellationToken = default)
     {

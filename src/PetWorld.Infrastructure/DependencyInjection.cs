@@ -20,8 +20,9 @@ public static class DependencyInjection
         services.AddDbContext<PetWorldDbContext>(options =>
             options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 36))));
 
-        services.AddScoped<IChatMessageRepository, EfChatMessageRepository>();
-        services.AddScoped<IProductRepository, EfProductRepository>();
+        services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
+        services.AddScoped<IProductRepository, ProductRepository>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         return services;
     }

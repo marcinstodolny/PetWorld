@@ -12,8 +12,8 @@ using PetWorld.Infrastructure.Persistence;
 namespace PetWorld.Infrastructure.Migrations
 {
     [DbContext(typeof(PetWorldDbContext))]
-    [Migration("20260208225446_init")]
-    partial class init
+    [Migration("20260208225446_Init")]
+    partial class Init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

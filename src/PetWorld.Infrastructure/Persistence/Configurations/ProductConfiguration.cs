@@ -7,8 +7,6 @@ namespace PetWorld.Infrastructure.Persistence.Configurations;
 
 public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
 {
-    private static readonly DateTime SeededAt = new(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-
     public void Configure(EntityTypeBuilder<Product> builder)
     {
         builder.ToTable("Products");

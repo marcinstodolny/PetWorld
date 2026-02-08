@@ -5,9 +5,6 @@ namespace PetWorld.Infrastructure.Persistence;
 
 internal static class ProductSeedData
 {
-    internal static readonly DateTime SeededAt =
-        new DateTime(2026, 2, 8, 0, 0, 0, DateTimeKind.Utc);
-
     private static readonly SeedItem[] Items =
     {
         new SeedItem(
@@ -93,19 +90,19 @@ internal static class ProductSeedData
     };
 
     internal static object[] Products => Items
-        .Select(item => (object)new
+        .Select(object (item) => new
         {
             Id = item.Id,
             Name = ProductName.Create(item.Name).Value,
             Category = item.Category,
             Description = ProductDescription.Create(item.Description).Value,
-            CreatedAt = SeededAt,
+            CreatedAt = new DateTime(2026, 2, 8, 0, 0, 0, DateTimeKind.Utc),
             UpdatedAt = (DateTime?)null
         })
         .ToArray();
 
     internal static object[] Prices => Items
-        .Select(item => (object)new
+        .Select(object (item) => new
         {
             ProductId = item.Id,
             Amount = item.PriceAmount,
