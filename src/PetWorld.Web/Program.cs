@@ -1,7 +1,5 @@
-using Microsoft.EntityFrameworkCore;
 using PetWorld.Application;
 using PetWorld.Infrastructure;
-using PetWorld.Infrastructure.Persistence;
 using PetWorld.Web.Components;
 
 namespace PetWorld.Web
@@ -37,13 +35,7 @@ namespace PetWorld.Web
             app.MapRazorComponents<App>()
                 .AddInteractiveServerRenderMode();
 
-            
-
-            using (var scope = app.Services.CreateScope())
-            {
-                var dbContext = scope.ServiceProvider.GetRequiredService<PetWorldDbContext>();
-                dbContext.Database.Migrate();
-            }
+            app.Services.ApplyInfrastructureMigrations();
 
             app.Run();
         }
