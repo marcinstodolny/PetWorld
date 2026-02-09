@@ -11,7 +11,7 @@ public sealed class ProductRepository(PetWorldDbContext dbContext) : IProductRep
     {
         return await dbContext.Products
             .AsNoTracking()
-            .OrderBy(product => product.Name.Value)
+            .OrderBy(product => product.Name)
             .ToListAsync(cancellationToken);
     }
 }

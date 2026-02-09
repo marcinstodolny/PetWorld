@@ -1,0 +1,62 @@
+@page "/chat-history"
+@rendermode InteractiveServer
+@using PetWorld.Application.Models.Response
+@inject PetWorld.Application.UseCases.Chat.GetChatHistoryUseCase GetChatHistoryUseCase
+
+<PageTitle>Historia czatu</PageTitle>
+
+<h1>Historia czatu (Use Case)</h1>
+
+<p>Lista zapisanych wiadomości z bazy danych.</p>
+
+@if (isLoading)
+{
+    <p><em>Ładowanie historii...</em></p>
+}
+else if (history.Count == 0)
+{
+    <p><em>Brak zapisanych wiadomości.</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Pytanie</th>
+                <th>Odpowiedź</th>
+                <th>Iteracje</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in history)
+            {
+                <tr>
+                    <td>@item.CreatedAt.ToString("g")</td>
+                    <td>@item.Question</td>
+                    <td>@item.Answer</td>
+                    <td>@item.Iterations</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<button class="btn btn-secondary" @onclick="LoadHistory" disabled="@isLoading">Odśwież</button>
+
+@code {
+    private bool isLoading = true;
+    private IReadOnlyList<ChatHistoryItemResponse> history = Array.Empty<ChatHistoryItemResponse>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadHistory();
+    }
+
+    private async Task LoadHistory()
+    {
+        isLoading = true;
+        history = await GetChatHistoryUseCase.ExecuteAsync();
+        isLoading = false;
+    }
+}

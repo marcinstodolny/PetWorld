@@ -3,9 +3,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PetWorld.Application.Abstraction.AI;
 using PetWorld.Application.Abstraction.Repository;
-using PetWorld.Infrastructure.AI;
 using PetWorld.Infrastructure.Persistence;
 using PetWorld.Infrastructure.Repositories;
+using PetWorld.Infrastructure.Services;
 
 namespace PetWorld.Infrastructure;
 

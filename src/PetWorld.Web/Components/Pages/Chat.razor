@@ -1,0 +1,84 @@
+@page "/chat"
+@rendermode InteractiveServer
+@using System.ComponentModel.DataAnnotations
+@using PetWorld.Application.Models.Request
+@using PetWorld.Application.Models.Response
+@inject PetWorld.Application.UseCases.Chat.AskChatUseCase AskChatUseCase
+
+<PageTitle>Chat</PageTitle>
+
+<h1>Chat (Use Case)</h1>
+
+<p>Wprowadź pytanie, aby przetestować UseCase i zapisać wiadomość w bazie.</p>
+
+<EditForm Model="_chatModel" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div class="mb-3">
+        <label class="form-label" for="questionInput">Pytanie</label>
+        <InputText id="questionInput" class="form-control" @bind-Value="_chatModel.Question" placeholder="Np. Jaka karma dla psa?" />
+    </div>
+    <button class="btn btn-primary" type="submit" disabled="@_isSubmitting">Wyślij</button>
+</EditForm>
+
+@if (_isSubmitting)
+{
+    <p class="mt-3"><em>Wysyłanie zapytania...</em></p>
+}
+
+@if (_errors.Count > 0)
+{
+    <div class="alert alert-danger mt-3">
+        <ul>
+            @foreach (var error in _errors)
+            {
+                <li>@error</li>
+            }
+        </ul>
+    </div>
+}
+
+@if (_lastResponse is not null)
+{
+    <div class="alert alert-success mt-3">
+        <h2 class="h5">Odpowiedź</h2>
+        <p>@_lastResponse.Answer</p>
+        <p class="mb-0"><strong>Liczba iteracji:</strong> @_lastResponse.Iterations</p>
+    </div>
+}
+
+@code {
+    private readonly ChatFormModel _chatModel = new();
+    private ChatResponse? _lastResponse;
+    private bool _isSubmitting;
+    private readonly List<string> _errors = new();
+
+    private async Task HandleSubmit()
+    {
+        _errors.Clear();
+        _lastResponse = null;
+
+        _isSubmitting = true;
+
+        var result = await AskChatUseCase.ExecuteAsync(new AskChatRequest(_chatModel.Question.Trim()));
+
+        if (result.IsFailed)
+        {
+            _errors.AddRange(result.Errors);
+        }
+        else
+        {
+            _lastResponse = result.Value;
+            _chatModel.Question = string.Empty;
+        }
+
+        _isSubmitting = false;
+    }
+
+    private sealed class ChatFormModel
+    {
+        [Required(ErrorMessage = "Pytanie nie może być puste.")]
+        [StringLength(Domain.ValueObjects.Question.MaxLength, ErrorMessage = "Pytanie może mieć maksymalnie {1} znaków.")]
+        public string Question { get; set; } = string.Empty;
+    }
+}
