@@ -1,7 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using PetWorld.Application.Abstraction.AI;
 using PetWorld.Application.Abstraction.Repository;
+using PetWorld.Infrastructure.AI;
 using PetWorld.Infrastructure.Persistence;
 using PetWorld.Infrastructure.Repositories;
 
@@ -23,6 +25,7 @@ public static class DependencyInjection
         services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IWriterCriticService, WriterCriticService>();
 
         return services;
     }
