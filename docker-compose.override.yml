@@ -1,0 +1,14 @@
+services:
+  petworld.web:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_HTTPS_PORTS=8081
+    ports:
+      - "8080"
+      - "8081"
+    volumes:
+      - ${USER_SECRETS_PATH:-./.docker/usersecrets}:/home/app/.microsoft/usersecrets:ro
+      - ${USER_SECRETS_PATH:-./.docker/usersecrets}:/root/.microsoft/usersecrets:ro
+      - ${HTTPS_CERTS_PATH:-./.docker/https}:/home/app/.aspnet/https:ro
+      - ${HTTPS_CERTS_PATH:-./.docker/https}:/root/.aspnet/https:ro
