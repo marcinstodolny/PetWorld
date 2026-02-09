@@ -1,3 +1,7 @@
+using Microsoft.EntityFrameworkCore;
+using PetWorld.Application;
+using PetWorld.Infrastructure;
+using PetWorld.Infrastructure.Persistence;
 using PetWorld.Web.Components;
 
 namespace PetWorld.Web
@@ -11,6 +15,8 @@ namespace PetWorld.Web
             // Add services to the container.
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
+            builder.Services.AddApplication();
+            builder.Services.AddInfrastructure(builder.Configuration);
 
             var app = builder.Build();
 
@@ -30,6 +36,14 @@ namespace PetWorld.Web
             app.MapStaticAssets();
             app.MapRazorComponents<App>()
                 .AddInteractiveServerRenderMode();
+
+            
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<PetWorldDbContext>();
+                dbContext.Database.Migrate();
+            }
 
             app.Run();
         }

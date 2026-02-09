@@ -4,7 +4,7 @@ namespace PetWorld.Domain.ValueObjects;
 
 public sealed record ProductName
 {
-    private const int MaxLength = 200;
+    public const int MaxLength = 200;
 
     private ProductName(string value)
     {
