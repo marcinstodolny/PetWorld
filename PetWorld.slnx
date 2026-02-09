@@ -9,4 +9,7 @@
     <Project Path="tests/PetWorld.Integration.Tests/PetWorld.Integration.Tests.csproj" Id="08f9fe31-b2be-48e6-8d48-e99606c1ba67" />
     <Project Path="tests/PetWorld.Unit.Tests/PetWorld.Unit.Tests.csproj" Id="0994099a-e3e3-4531-8a62-0c4a6a021344" />
   </Folder>
+  <Project Path="docker-compose.dcproj">
+    <Build />
+  </Project>
 </Solution>

@@ -1,0 +1,33 @@
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-admin}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-petworld}
+      MYSQL_USER: ${MYSQL_USER:-petworld}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-petworld}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  petworld.web:
+    build:
+      context: .
+      dockerfile: src/PetWorld.Web/Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      ASPNETCORE_URLS: http://0.0.0.0:5000
+      ConnectionStrings__PetWorldDatabase: "Server=db;Port=3306;Database=${MYSQL_DATABASE:-petworld};User=${MYSQL_USER:-petworld};Password=${MYSQL_PASSWORD:-petworld};"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
