@@ -10,7 +10,6 @@ using PetWorld.Domain.Enums;
 using PetWorld.Domain.ValueObjects;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace PetWorld.Infrastructure.Services;
 
@@ -19,11 +18,9 @@ public sealed class WriterCriticService(IOptions<AgentFrameworkOptions> options)
     private const int FeedbackMaxLength = 200;
     private const string DefaultFeedback = "Odpowiedź wymaga poprawy. Ulepsz rekomendacje produktów i dopasuj je do pytania.";
     private readonly AgentFrameworkOptions _options = options.Value;
+    private static readonly JsonSerializerOptions SJsonOptions = new() { PropertyNameCaseInsensitive = true };
 
-    public async Task<Result<WriterCriticResult>> GenerateResponseAsync(
-        string question,
-        IReadOnlyList<Product> products,
-        CancellationToken cancellationToken = default)
+    public async Task<Result<WriterCriticResult>> GenerateResponseAsync(string question, IReadOnlyList<Product> products, CancellationToken cancellationToken = default)
     {
         var apiKey = GetApiKey();
         if (string.IsNullOrWhiteSpace(apiKey))
@@ -34,19 +31,13 @@ public sealed class WriterCriticService(IOptions<AgentFrameworkOptions> options)
         return await GenerateResponseInternalAsync(question, products, apiKey, cancellationToken);
     }
 
-    private async Task<Result<WriterCriticResult>> GenerateResponseInternalAsync(
-        string question,
-        IReadOnlyList<Product> products,
-        string apiKey,
-        CancellationToken cancellationToken)
+    private async Task<Result<WriterCriticResult>> GenerateResponseInternalAsync(string question, IReadOnlyList<Product> products, string apiKey, CancellationToken cancellationToken)
     {
         var productCatalog = BuildCatalog(products);
         var writerAgent = CreateWriterAgent(apiKey);
         var criticAgent = CreateCriticAgent(apiKey);
 
         string? feedback = null;
-        string? answer = null;
-        var approved = false;
 
         for (var iteration = 1; iteration <= IterationCount.MaxValue; iteration++)
         {
@@ -57,7 +48,7 @@ public sealed class WriterCriticService(IOptions<AgentFrameworkOptions> options)
                 return Result.Fail<WriterCriticResult>(writerResponseResult.Errors);
             }
 
-            answer = writerResponseResult.Value;
+            var answer = writerResponseResult.Value;
 
             var criticPrompt = BuildCriticPrompt(question, answer, productCatalog);
             var criticResponseResult = await ExecuteAgentAsync(criticAgent, criticPrompt, iteration, cancellationToken);
@@ -66,9 +57,8 @@ public sealed class WriterCriticService(IOptions<AgentFrameworkOptions> options)
                 return Result.Fail<WriterCriticResult>(criticResponseResult.Errors);
             }
 
-            var critic = ParseCriticResponse(criticResponseResult.Value);
-            approved = critic.Approved;
-            feedback = critic.Feedback;
+            var (approved, Feedback) = ParseCriticResponse(criticResponseResult.Value);
+            feedback = Feedback;
 
             if (approved)
             {
@@ -242,7 +232,7 @@ public sealed class WriterCriticService(IOptions<AgentFrameworkOptions> options)
         {
             var json = ExtractJson(response);
 
-            var parsed = JsonSerializer.Deserialize<CriticResponse>(json);
+            var parsed = JsonSerializer.Deserialize<CriticResponse>(json, SJsonOptions);
             if (parsed is not null)
             {
                 var feedback = NormalizeFeedback(parsed.Feedback);
@@ -306,5 +296,5 @@ public sealed class WriterCriticService(IOptions<AgentFrameworkOptions> options)
         return builder.ToString().Trim();
     }
 
-    private sealed record CriticResponse([property: JsonPropertyName("approved")] bool Approved, [property: JsonPropertyName("feedback")] string? Feedback);
+    private sealed record CriticResponse(bool Approved, string? Feedback);
 }
