@@ -1,5 +1,6 @@
 @page "/chat-history"
 @rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.QuickGrid
 @using PetWorld.Application.Models.Response
 @inject PetWorld.Application.UseCases.Chat.GetChatHistoryUseCase GetChatHistoryUseCase
 
@@ -9,44 +10,29 @@
 
 <p>Lista zapisanych wiadomości z bazy danych.</p>
 
-@if (isLoading)
+@if (_isLoading)
 {
     <p><em>Ładowanie historii...</em></p>
 }
-else if (history.Count == 0)
+else if (_history.Count == 0)
 {
     <p><em>Brak zapisanych wiadomości.</em></p>
 }
 else
 {
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Data</th>
-                <th>Pytanie</th>
-                <th>Odpowiedź</th>
-                <th>Iteracje</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var item in history)
-            {
-                <tr>
-                    <td>@item.CreatedAt.ToString("g")</td>
-                    <td>@item.Question</td>
-                    <td>@item.Answer</td>
-                    <td>@item.Iterations</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <QuickGrid Items="@_history.AsQueryable()" Class="table">
+        <PropertyColumn Property="@(item => item.CreatedAt)" Title="Data" Format="g" />
+        <PropertyColumn Property="@(item => item.Question)" Title="Pytanie" />
+        <PropertyColumn Property="@(item => item.Answer)" Title="Odpowiedź" />
+        <PropertyColumn Property="@(item => item.Iterations)" Title="Iteracje" />
+    </QuickGrid>
 }
 
-<button class="btn btn-secondary" @onclick="LoadHistory" disabled="@isLoading">Odśwież</button>
+<button class="btn btn-secondary" @onclick="LoadHistory" disabled="@_isLoading">Odśwież</button>
 
 @code {
-    private bool isLoading = true;
-    private IReadOnlyList<ChatHistoryItemResponse> history = Array.Empty<ChatHistoryItemResponse>();
+    private bool _isLoading = true;
+    private IReadOnlyList<ChatHistoryItemResponse> _history = Array.Empty<ChatHistoryItemResponse>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -55,8 +41,8 @@ else
 
     private async Task LoadHistory()
     {
-        isLoading = true;
-        history = await GetChatHistoryUseCase.ExecuteAsync();
-        isLoading = false;
+        _isLoading = true;
+        _history = await GetChatHistoryUseCase.ExecuteAsync();
+        _isLoading = false;
     }
 }

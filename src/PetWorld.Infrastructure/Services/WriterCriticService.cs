@@ -16,6 +16,7 @@ namespace PetWorld.Infrastructure.Services;
 
 public sealed class WriterCriticService(IOptions<AgentFrameworkOptions> options) : IWriterCriticService
 {
+    private const int FeedbackMaxLength = 200;
     private const string DefaultFeedback = "Odpowiedź wymaga poprawy. Ulepsz rekomendacje produktów i dopasuj je do pytania.";
     private readonly AgentFrameworkOptions _options = options.Value;
 
@@ -50,13 +51,22 @@ public sealed class WriterCriticService(IOptions<AgentFrameworkOptions> options)
         for (var iteration = 1; iteration <= IterationCount.MaxValue; iteration++)
         {
             var writerPrompt = BuildWriterPrompt(question, productCatalog, feedback);
-            var writerResponse = await writerAgent.RunAsync(writerPrompt, session: null, options: null, cancellationToken);
-            answer = writerResponse.Text;
+            var writerResponseResult = await ExecuteAgentAsync(writerAgent, writerPrompt, iteration, cancellationToken);
+            if (writerResponseResult.IsFailed)
+            {
+                return Result.Fail<WriterCriticResult>(writerResponseResult.Errors);
+            }
+
+            answer = writerResponseResult.Value;
 
             var criticPrompt = BuildCriticPrompt(question, answer, productCatalog);
-            var criticResponse = await criticAgent.RunAsync(criticPrompt, session: null, options: null, cancellationToken);
-            var critic = ParseCriticResponse(criticResponse.Text);
+            var criticResponseResult = await ExecuteAgentAsync(criticAgent, criticPrompt, iteration, cancellationToken);
+            if (criticResponseResult.IsFailed)
+            {
+                return Result.Fail<WriterCriticResult>(criticResponseResult.Errors);
+            }
 
+            var critic = ParseCriticResponse(criticResponseResult.Value);
             approved = critic.Approved;
             feedback = critic.Feedback;
 
@@ -73,42 +83,56 @@ public sealed class WriterCriticService(IOptions<AgentFrameworkOptions> options)
             feedback));
     }
 
+    private static async Task<Result<string>> ExecuteAgentAsync(ChatClientAgent agent, string prompt, int iteration, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await agent.RunAsync(prompt, session: null, options: null, cancellationToken);
+            return Result.Success(response.Text);
+        }
+        catch (Exception ex)
+        {
+            var message = $"Błąd modelu AI na etapie '{agent.Name}', iteracja {iteration}: {ex.Message}";
+            return Result.Fail<string>(message);
+        }
+    }
+
     private ChatClientAgent CreateWriterAgent(string apiKey)
     {
         return CreateChatClient(apiKey)
             .AsAIAgent(
                 name: "Writer",
-                instructions: 
+                instructions:
                 """
-                      Jesteś pomocnym doradcą sklepu zoologicznego PetWorld. Odpowiadasz po polsku.
+                Jesteś pomocnym doradcą sklepu zoologicznego PetWorld. Odpowiadasz po polsku.
 
-                      KATALOG w wiadomości użytkownika jest jedynym źródłem prawdy.
+                KATALOG w wiadomości użytkownika jest jedynym źródłem prawdy.
 
-                      ZASADY (twarde):
-                      - Polecaj WYŁĄCZNIE produkty z przekazanego katalogu. Nie wymyślaj produktów.
-                      - Używaj DOKŁADNIE takich nazw produktów, jak w katalogu (identyczna pisownia).
-                      - Nie dopowiadaj cech produktów, których nie ma w katalogu (bez zmyślonych właściwości).
-                      - Odpowiedź ma być krótka i konkretna.
+                ZASADY (twarde):
+                - Polecaj WYŁĄCZNIE produkty z przekazanego katalogu. Nie wymyślaj produktów.
+                - Używaj DOKŁADNIE takich nazw produktów, jak w katalogu (identyczna pisownia).
+                - Nie dopowiadaj cech produktów, których nie ma w katalogu (bez zmyślonych właściwości).
+                - Odpowiedź ma być krótka i konkretna.
 
-                      ILE PRODUKTÓW:
-                      - Cel: 2–3 rekomendacje, jeśli są sensowne dopasowania.
-                      - Jeśli katalog nie pozwala: dopuszczalne jest 1 rekomendacja.
-                      - Jeśli nie ma żadnego sensownego dopasowania lub pytanie jest niezrozumiałe: dopuszczalne jest 0 rekomendacji.
+                ILE PRODUKTÓW:
+                - Cel: 2–3 rekomendacje, jeśli są sensowne dopasowania.
+                - Jeśli katalog nie pozwala: dopuszczalne jest 1 rekomendacja.
+                - Jeśli nie ma żadnego sensownego dopasowania lub pytanie jest niezrozumiałe: dopuszczalne jest 0 rekomendacji.
 
-                      DOPASOWANIE:
-                      - Najpierw próbuj dopasować do zwierzęcia/tematu pytania (pies/kot/gryzoń/akwarium itd.).
-                      - Jeśli nie ma idealnego dopasowania, możesz podać „Najbliższe dostępne” (0–2 szt.) z krótkim wyjaśnieniem dlaczego.
+                DOPASOWANIE:
+                - Najpierw próbuj dopasować do zwierzęcia/tematu pytania (pies/kot/gryzoń/akwarium itd.).
+                - Jeśli nie ma idealnego dopasowania, możesz podać „Najbliższe dostępne” (0–2 szt.) z krótkim wyjaśnieniem dlaczego.
 
-                      FORMAT odpowiedzi (bez markdown, bez JSON):
-                      1) 1 zdanie wstępu.
-                      2) Lista 0–3 punktów w formacie: Nazwa — cena — krótkie uzasadnienie (5–12 słów).
-                         - Jeśli produkt jest „najbliższy” (nie idealny), dopisz w uzasadnieniu 1 krótką przyczynę.
-                      3) Na końcu jedno krótkie pytanie doprecyzowujące (max 1 zdanie), jeśli potrzebne.
+                FORMAT odpowiedzi (bez markdown, bez JSON):
+                - Linia 1: dokładnie 1 zdanie wstępu.
+                - Linie 2..N: 0–3 rekomendacje, każda w osobnej linii, format: Nazwa — cena — krótkie uzasadnienie (5–12 słów).
+                - NIE używaj prefiksów listy: bez '-', '*', numeracji i punktorów.
+                - Ostatnia linia opcjonalna: "Pytanie: ..." (jedno krótkie pytanie doprecyzowujące).
 
-                      Zakazy:
-                      - Nie używaj pogrubień, numeracji w stylu markdown ani nagłówków z gwiazdkami.
-                      - Nie wspominaj o katalogu, promptach, krytyku, iteracjach.
-                
+                Zakazy:
+                - Nie używaj markdown, JSON, ani potrójnych backticków ```.
+                - Nie wspominaj o katalogu, promptach, krytyku, iteracjach.
+
                 """);
     }
 
@@ -130,7 +154,7 @@ public sealed class WriterCriticService(IOptions<AgentFrameworkOptions> options)
         if (!string.IsNullOrWhiteSpace(feedback))
         {
             builder.AppendLine();
-            builder.AppendLine("=== FEEDBACK KRYTYKA (UWZGLĘDNIJ) ===");
+            builder.AppendLine("=== FEEDBACK KRYTYKA (UWZGLĘDNIJ JEDNĄ NAJWAŻNIEJSZĄ POPRAWKĘ) ===");
             builder.AppendLine(feedback);
         }
 
@@ -145,30 +169,40 @@ public sealed class WriterCriticService(IOptions<AgentFrameworkOptions> options)
         return CreateChatClient(apiKey)
             .AsAIAgent(
                 name: "Critic",
-                instructions: 
-                """
-                      Jesteś krytykiem jakości odpowiedzi AI w sklepie PetWorld.
+                instructions:
+                $$"""
+                Jesteś krytykiem jakości odpowiedzi AI w sklepie PetWorld.
 
-                      Sprawdź odpowiedź Writer’a według reguł MAŁEGO KATALOGU.
+                Sprawdź odpowiedź Writer’a według reguł MAŁEGO KATALOGU.
 
-                      WARUNKI ODRZUCENIA (approved=false):
-                      - Jakikolwiek produkt spoza katalogu lub nazwa nie jest identyczna z katalogiem.
-                      - Writer dopowiada cechy produktu, których nie ma w katalogu.
-                      - Writer używa markdown/JSON w odpowiedzi (gwiazdki, pogrubienia, kod, itp.).
-                      - Writer podał „najbliższe dostępne”, ale nie wyjaśnił krótko dlaczego (1 krótka przyczyna).
-                      - Odpowiedź jest rażąco nie na temat.
+                KONTRAKT FORMATU OD WRITERA:
+                - Linia 1: dokładnie 1 zdanie wstępu.
+                - Kolejne linie: 0–3 rekomendacje, każda osobno, bez prefiksów listy, format: Nazwa — cena — krótkie uzasadnienie.
+                - Opcjonalnie ostatnia linia: "Pytanie: ...".
 
-                      LICZBA PRODUKTÓW:
-                      - 2–3 to cel, ale dopuszczalne jest 0–3:
-                        - 0: gdy brak sensownego dopasowania lub pytanie niezrozumiałe (wtedy oczekuj pytania doprecyzowującego).
-                        - 1: gdy w katalogu jest tylko jeden sensownie pasujący produkt.
-                        - 2–3: gdy są sensowne dopasowania.
+                WARUNKI ODRZUCENIA (approved=false):
+                - Jakikolwiek produkt spoza katalogu lub nazwa nie jest identyczna z katalogiem.
+                - Writer dopowiada cechy produktu, których nie ma w katalogu.
+                - Writer używa markdown/JSON/potrójnych backticków ``` w odpowiedzi.
+                - Brak dokładnie 1 zdania wstępu w pierwszej linii.
+                - Rekomendacje nie są w osobnych liniach lub jest ich więcej niż 3.
+                - Writer używa listy punktowanej/numerycznej (np. '-', '*', '1.').
+                - Linia "Pytanie: ..." występuje, ale nie jest ostatnia.
+                - Writer podał „najbliższe dostępne”, ale nie wyjaśnił krótko dlaczego (1 krótka przyczyna).
+                - Odpowiedź jest rażąco nie na temat.
 
-                      Zwróć WYŁĄCZNIE jeden obiekt JSON (bez markdown, bez komentarzy) w formacie:
-                      {"approved": true|false, "feedback": "krótka wskazówka poprawy po polsku (max 200 znaków)"}
-                
+                LICZBA PRODUKTÓW:
+                - 2–3 to cel, ale dopuszczalne jest 0–3:
+                - 0: gdy brak sensownego dopasowania lub pytanie niezrozumiałe.
+                - 1: gdy w katalogu jest tylko jeden sensownie pasujący produkt.
+                - 2–3: gdy są sensowne dopasowania.
+
+                Zwróć WYŁĄCZNIE jeden obiekt JSON (bez markdown, bez komentarzy, bez ```):
+                {"approved": true|false, "feedback": "jedna najważniejsza wskazówka poprawy po polsku (max {{FeedbackMaxLength}} znaków)"}
+
                 """);
     }
+
     private static string BuildCriticPrompt(string question, string answer, string catalog)
     {
         var builder = new StringBuilder();
@@ -214,10 +248,7 @@ public sealed class WriterCriticService(IOptions<AgentFrameworkOptions> options)
             var parsed = JsonSerializer.Deserialize<CriticResponse>(json);
             if (parsed is not null)
             {
-                var feedback = string.IsNullOrWhiteSpace(parsed.Feedback)
-                    ? DefaultFeedback
-                    : parsed.Feedback;
-
+                var feedback = NormalizeFeedback(parsed.Feedback);
                 return (parsed.Approved, feedback);
             }
         }
@@ -227,6 +258,17 @@ public sealed class WriterCriticService(IOptions<AgentFrameworkOptions> options)
         }
 
         return (false, DefaultFeedback);
+    }
+
+    private static string NormalizeFeedback(string? feedback)
+    {
+        var normalized = string.IsNullOrWhiteSpace(feedback)
+            ? DefaultFeedback
+            : feedback.Trim();
+
+        return normalized.Length <= FeedbackMaxLength
+            ? normalized
+            : normalized[..FeedbackMaxLength];
     }
 
     private static string ExtractJson(string text)
