@@ -1,7 +1,48 @@
 ﻿@page "/"
 
-<PageTitle>Home</PageTitle>
+<PageTitle>PetWorld</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="d-flex flex-column gap-4">
+    <section class="p-4 border rounded bg-light">
+        <h1 class="display-6 mb-2">PetWorld 🐾</h1>
+        <p class="mb-3">
+            Witaj w demonstracyjnej aplikacji sklepu zoologicznego. Możesz porozmawiać z asystentem AI,
+            który rekomenduje produkty i zapisuje historię konwersacji.
+        </p>
+        <div class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-primary" href="chat">Przejdź do chatu</a>
+            <a class="btn btn-outline-primary" href="chat-history">Zobacz historię</a>
+        </div>
+    </section>
 
-Welcome to your new app.
+    <section>
+        <h2 class="h4">Przykładowe pytania klientów</h2>
+        <ul class="mb-0">
+            <li>Jaką karmę polecacie dla dorosłego psa średniej rasy?</li>
+            <li>Potrzebuję drapaka dla kota do mieszkania - co wybrać?</li>
+            <li>Jaki zestaw będzie dobry na start z akwarystyką?</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2 class="h4">Dostępne funkcje</h2>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h3 class="h5">Chat z klientem</h3>
+                        <p class="mb-0">Wysyłasz pytanie, a system Writer-Critic generuje odpowiedź wraz z liczbą iteracji.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h3 class="h5">Historia rozmów</h3>
+                        <p class="mb-0">Przeglądasz zapisane pytania i odpowiedzi w czytelnej tabeli QuickGrid.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>

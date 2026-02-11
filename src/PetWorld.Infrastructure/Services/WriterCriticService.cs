@@ -125,7 +125,7 @@ public sealed class WriterCriticService(IOptions<AgentFrameworkOptions> options)
 
                 FORMAT odpowiedzi (bez markdown, bez JSON):
                 - Linia 1: dokładnie 1 zdanie wstępu.
-                - Linie 2..N: 0–3 rekomendacje, każda w osobnej linii, format: Nazwa — cena — krótkie uzasadnienie (5–12 słów).
+                - Linie 2..N: 0–3 rekomendacje, każda w osobnej linii, format: Nazwa - cena - krótkie uzasadnienie (5–12 słów).
                 - NIE używaj prefiksów listy: bez '-', '*', numeracji i punktorów.
                 - Ostatnia linia opcjonalna: "Pytanie: ..." (jedno krótkie pytanie doprecyzowujące).
 
@@ -177,7 +177,7 @@ public sealed class WriterCriticService(IOptions<AgentFrameworkOptions> options)
 
                 KONTRAKT FORMATU OD WRITERA:
                 - Linia 1: dokładnie 1 zdanie wstępu.
-                - Kolejne linie: 0–3 rekomendacje, każda osobno, bez prefiksów listy, format: Nazwa — cena — krótkie uzasadnienie.
+                - Kolejne linie: 0–3 rekomendacje, każda osobno, bez prefiksów listy, format: Nazwa - cena - krótkie uzasadnienie.
                 - Opcjonalnie ostatnia linia: "Pytanie: ...".
 
                 WARUNKI ODRZUCENIA (approved=false):
