@@ -76,11 +76,8 @@ public sealed class WriterCriticService(IOptions<AgentFrameworkOptions> options)
             }
         }
 
-        return Result.Success(new WriterCriticResult(
-            answer ?? string.Empty,
-            IterationCount.MaxValue,
-            approved,
-            feedback));
+        return Result.Fail<WriterCriticResult>(
+            $"Krytyk nie zatwierdził odpowiedzi po {IterationCount.MaxValue} iteracjach. Ostatnia wskazówka: {feedback ?? DefaultFeedback}");
     }
 
     private static async Task<Result<string>> ExecuteAgentAsync(ChatClientAgent agent, string prompt, int iteration, CancellationToken cancellationToken)
