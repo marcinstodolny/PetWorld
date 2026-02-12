@@ -1,52 +1,51 @@
 @page "/chat-history"
 @rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.QuickGrid
 @using PetWorld.Application.Models.Response
 @inject PetWorld.Application.UseCases.Chat.GetChatHistoryUseCase GetChatHistoryUseCase
 
 <PageTitle>Historia czatu</PageTitle>
 
-<h1>Historia czatu (Use Case)</h1>
+<div class="d-flex flex-column gap-3">
+    <div>
+        <h1 class="mb-1">Historia czatu</h1>
+        <p class="text-muted mb-0">Lista zapisanych pytań i odpowiedzi wygenerowanych przez system Writer-Critic.</p>
+    </div>
 
-<p>Lista zapisanych wiadomości z bazy danych.</p>
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span class="text-muted">Liczba wiadomości: @_history.Count</span>
+        <button class="btn btn-outline-secondary" @onclick="LoadHistory" disabled="@_isLoading">Odśwież</button>
+    </div>
 
-@if (isLoading)
-{
-    <p><em>Ładowanie historii...</em></p>
-}
-else if (history.Count == 0)
-{
-    <p><em>Brak zapisanych wiadomości.</em></p>
-}
-else
-{
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Data</th>
-                <th>Pytanie</th>
-                <th>Odpowiedź</th>
-                <th>Iteracje</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var item in history)
-            {
-                <tr>
-                    <td>@item.CreatedAt.ToString("g")</td>
-                    <td>@item.Question</td>
-                    <td>@item.Answer</td>
-                    <td>@item.Iterations</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
+    @if (_isLoading)
+    {
+        <p><em>Ładowanie historii...</em></p>
+    }
+    else if (_history.Count == 0)
+    {
+        <div class="alert alert-info mb-0" role="alert">
+            Brak zapisanych wiadomości.
+        </div>
+    }
+    else
+    {
+        <QuickGrid Items="@_history.AsQueryable()"
+                   Class="table table-striped table-hover align-middle"
+                   Pagination="_pagination">
+            <PropertyColumn Property="@(item => item.CreatedAt)" Title="Data" Format="yyyy-MM-dd HH:mm" Sortable="true" />
+            <PropertyColumn Property="@(item => item.Question)" Title="Pytanie" />
+            <PropertyColumn Property="@(item => item.Answer)" Title="Odpowiedź" />
+            <PropertyColumn Property="@(item => item.Iterations)" Title="Liczba iteracji" Sortable="true" />
+        </QuickGrid>
 
-<button class="btn btn-secondary" @onclick="LoadHistory" disabled="@isLoading">Odśwież</button>
+        <Paginator State="_pagination" />
+    }
+</div>
 
 @code {
-    private bool isLoading = true;
-    private IReadOnlyList<ChatHistoryItemResponse> history = Array.Empty<ChatHistoryItemResponse>();
+    private bool _isLoading = true;
+    private IReadOnlyList<ChatHistoryItemResponse> _history = Array.Empty<ChatHistoryItemResponse>();
+    private readonly PaginationState _pagination = new() { ItemsPerPage = 10 };
 
     protected override async Task OnInitializedAsync()
     {
@@ -55,8 +54,8 @@ else
 
     private async Task LoadHistory()
     {
-        isLoading = true;
-        history = await GetChatHistoryUseCase.ExecuteAsync();
-        isLoading = false;
+        _isLoading = true;
+        _history = await GetChatHistoryUseCase.ExecuteAsync();
+        _isLoading = false;
     }
 }
