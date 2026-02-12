@@ -68,6 +68,10 @@ Możesz ustawić klucz także w:
 ### 2) Uruchom aplikację
 
 ```bash
+docker compose up
+```
+Jeśli zmieniłeś kod i chcesz przebudować obraz:
+```bash
 docker compose up --build
 ```
 
