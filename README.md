@@ -1,122 +1,87 @@
-# Zadanie rekrutacyjne
+# PetWorld
 
-## Cel zadania
+Aplikacja webowa **Blazor Server** dla sklepu zoologicznego PetWorld, zrealizowana w podejściu **Onion/Clean Architecture**.  
+System udostępnia chat wspierany przez AI (workflow Writer-Critic) oraz historię rozmów zapisaną w bazie MySQL.
 
-Sprawdzenie umiejętności:
-- Projektowania aplikacji zgodnie z **Onion/Clean Architecture**
-- Tworzenia UI w **Blazor Server**
-- Integracji z AI przy użyciu **Microsoft Agent Framework**
-- Pracy z **Claude Code**
+## Zakres funkcjonalny
 
----
+### 1) Chat z klientem
+- Formularz do wpisania pytania.
+- Przycisk **Wyślij**.
+- Odpowiedź AI wraz z liczbą iteracji Writer-Critic (max 3).
 
-## Scenariusz biznesowy
+### 2) Historia rozmów
+- Widok tabelaryczny (QuickGrid) z zapisanymi wiadomościami.
+- Kolumny: **Data**, **Pytanie**, **Odpowiedź**, **Liczba iteracji**.
 
-### 🐾 Sklep internetowy "PetWorld"
+## Architektura projektu
 
-**PetWorld** to sklep internetowy oferujący produkty dla zwierząt domowych. Klienci mogą zadawać pytania o produkty poprzez chat, a system AI pomaga im znaleźć odpowiednie produkty i udziela porad.
+Rozwiązanie podzielone jest na warstwy:
+- `PetWorld.Domain` – encje, value objecty, reguły domenowe.
+- `PetWorld.Application` – use case’y i kontrakty (repozytoria, AI).
+- `PetWorld.Infrastructure` – EF Core, MySQL, migracje, implementacje repozytoriów i Writer-Critic.
+- `PetWorld.Web` – interfejs użytkownika (Blazor Server).
 
-### Katalog produktów (do wpisania w prompt)
+## Stos technologiczny
 
-| Nazwa produktu | Kategoria | Cena | Opis |
-|----------------|-----------|------|------|
-| Royal Canin Adult Dog 15kg | Karma dla psów | 289 zł | Premium karma dla dorosłych psów średnich ras |
-| Whiskas Adult Kurczak 7kg | Karma dla kotów | 129 zł | Sucha karma dla dorosłych kotów z kurczakiem |
-| Tetra AquaSafe 500ml | Akwarystyka | 45 zł | Uzdatniacz wody do akwarium, neutralizuje chlor |
-| Trixie Drapak XL 150cm | Akcesoria dla kotów | 399 zł | Wysoki drapak z platformami i domkiem |
-| Kong Classic Large | Zabawki dla psów | 69 zł | Wytrzymała zabawka do napełniania smakołykami |
-| Ferplast Klatka dla chomika | Gryzonie | 189 zł | Klatka 60x40cm z wyposażeniem |
-| Flexi Smycz automatyczna 8m | Akcesoria dla psów | 119 zł | Smycz zwijana dla psów do 50kg |
-| Brit Premium Kitten 8kg | Karma dla kotów | 159 zł | Karma dla kociąt do 12 miesiąca życia |
-| JBL ProFlora CO2 Set | Akwarystyka | 549 zł | Kompletny zestaw CO2 dla roślin akwariowych |
-| Vitapol Siano dla królików 1kg | Gryzonie | 25 zł | Naturalne siano łąkowe, podstawa diety |
+- **.NET 10 / C#**
+- **Blazor Server**
+- **MySQL 8**
+- **Entity Framework Core**
+- **Microsoft Agent Framework**
+- **Docker Compose**
 
----
+## Uruchomienie (Docker Compose)
 
-## Wymagania
+Zgodnie z wymaganiami zadania projekt jest opisany pod uruchamianie przez Docker Compose.
 
-### Funkcjonalne
+### 1) Przygotuj konfigurację (wybierz jedną opcję)
 
-**Strona 1 - Chat z klientem**
-- Pole tekstowe do wpisania pytania klienta
-- Przycisk "Wyślij"
-- Wyświetlenie odpowiedzi + liczba iteracji Writer-Critic
+**Opcja A: `.env` (zalecana przy Docker Compose)**
 
-**Strona 2 - Historia**
-- DataGrid z listą pytań i odpowiedzi
-- Kolumny: Data, Pytanie, Odpowiedź, Liczba iteracji
-
-**System AI - Writer-Critic**
-- **Writer Agent** - generuje odpowiedź dla klienta, rekomenduje produkty
-- **Critic Agent** - ocenia odpowiedź, zwraca `approved: true/false` + feedback
-- Maksymalnie **3 iteracje**
-- Wykorzystaj: https://github.com/microsoft/agent-framework
-
-**Baza danych (MySQL)**
-
-
-### Techniczne
-
-- **Architektura:** Onion/Clean Architecture (wymagane)
-- **UI:** Blazor Server
-- **Baza:** MySQL
-- **AI:** Microsoft Agent Framework
-- **Uruchomienie:** `docker compose up`
-
----
-
-## Uruchomienie
-
-Aplikacja **MUSI** uruchamiać się jednym poleceniem:
+Skopiuj przykład zmiennych:
 
 ```bash
-docker compose up
+cp .env.example .env
+```
+
+Następnie uzupełnij w `.env` co najmniej:
+- `OPENAI_API_KEY`
+
+Przykład zawartości `.env`:
+
+```env
+OPENAI_API_KEY=your_openai_api_key_here
+MYSQL_ROOT_PASSWORD=admin
+MYSQL_DATABASE=petworld
+MYSQL_USER=petworld
+MYSQL_PASSWORD=petworld
+```
+
+**Opcja B: `appsettings.json` (tylko klucz AI)**
+
+Możesz ustawić klucz także w:
+- `src/PetWorld.Web/appsettings.json` → `AgentFramework:OpenAiApiKey`
+
+> Priorytet: jeśli ustawisz oba, **użyty zostanie `appsettings.json`** (`AgentFramework:OpenAiApiKey`), a dopiero gdy jest pusty – `OPENAI_API_KEY` z .env.
+
+### 2) Uruchom aplikację
+
+```bash
+docker compose up --build
 ```
 
 Po uruchomieniu:
-- Aplikacja: http://localhost:5000
+- Aplikacja: `http://localhost:5000`
+- MySQL: `localhost:3307`
 
-Klucz API (OpenAI/Azure) konfigurowalny przez zmienną środowiskową lub `appsettings.json`.
+## Przydatne adresy w aplikacji
 
----
+- `/chat` – chat z klientem
+- `/chat-history` – historia zapytań
 
-## Kryteria oceny
+## Testy
 
-- Poprawna implementacja Onion/Clean Architecture
-- Działający Writer-Critic workflow
-- Aplikacja uruchamia się przez `docker compose up`
-- Czytelny kod
-
----
-
-## Dostawa rozwiązania
-
-### Repozytorium Git (PUBLICZNE)
-
-Udostępnij link do **publicznego** repozytorium GitHub/GitLab zawierającego:
-- Kod źródłowy
-- `docker-compose.yml`
-- `README.md` z instrukcją
-
-### Czas realizacji
-
-**Tak szybko jak to możliwe.**
-
-### Narzędzia
-
-Zadanie wykonaj przy użyciu **Claude Code**.
-
----
-
-## Rozmowa techniczna
-
-Po dostarczeniu rozwiązania przeprowadzimy rozmowę techniczną, podczas której:
-
-1. Wyjaśnisz architekturę i przepływ zależności między warstwami
-2. Opowiesz jak działa komunikacja między agentami
-3. Wykonasz drobne modyfikacje kodu na żywo (bez AI)
-
-**Musisz być w stanie wyjaśnić każdą linię kodu w projekcie.**
-
----
-**Powodzenia! 🐾**
+```bash
+dotnet test PetWorld.slnx
+```
