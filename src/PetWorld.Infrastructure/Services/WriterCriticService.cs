@@ -80,6 +80,11 @@ public sealed class WriterCriticService(IOptions<AgentFrameworkOptions> options)
             var response = await agent.RunAsync(prompt, session: null, options: null, cancellationToken);
             return Result.Success(response.Text);
         }
+        catch (OperationCanceledException)
+        {
+            var message = $"Operacja przerwana na etapie '{agent.Name}', iteracja {iteration}.";
+            return Result.Fail<string>(message);
+        }
         catch (Exception ex)
         {
             var message = $"Błąd modelu AI na etapie '{agent.Name}', iteracja {iteration}: {ex.Message}";
