@@ -18,4 +18,8 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\PetWorld.Domain\PetWorld.Domain.csproj" />
+  </ItemGroup>
+
 </Project>
