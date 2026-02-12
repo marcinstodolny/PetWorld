@@ -38,6 +38,8 @@ public sealed class WriterCriticService(IOptions<AgentFrameworkOptions> options)
         var criticAgent = CreateCriticAgent(apiKey);
 
         string? feedback = null;
+        string? lastAnswer = null;
+        var iterationsCompleted = 0;
 
         for (var iteration = 1; iteration <= IterationCount.MaxValue; iteration++)
         {
@@ -49,6 +51,8 @@ public sealed class WriterCriticService(IOptions<AgentFrameworkOptions> options)
             }
 
             var answer = writerResponseResult.Value;
+            lastAnswer = answer;
+            iterationsCompleted = iteration;
 
             var criticPrompt = BuildCriticPrompt(question, answer, productCatalog);
             var criticResponseResult = await ExecuteAgentAsync(criticAgent, criticPrompt, iteration, cancellationToken);
@@ -62,12 +66,11 @@ public sealed class WriterCriticService(IOptions<AgentFrameworkOptions> options)
 
             if (approved)
             {
-                return Result.Success(new WriterCriticResult(answer, iteration, true, feedback));
+                return Result.Success(new WriterCriticResult(answer, iteration));
             }
         }
 
-        return Result.Fail<WriterCriticResult>(
-            $"Krytyk nie zatwierdził odpowiedzi po {IterationCount.MaxValue} iteracjach. Ostatnia wskazówka: {feedback ?? DefaultFeedback}");
+        return Result.Success(new WriterCriticResult(lastAnswer ?? string.Empty, iterationsCompleted));
     }
 
     private static async Task<Result<string>> ExecuteAgentAsync(ChatClientAgent agent, string prompt, int iteration, CancellationToken cancellationToken)
