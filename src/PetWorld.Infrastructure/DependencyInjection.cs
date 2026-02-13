@@ -20,7 +20,8 @@ public static class DependencyInjection
         }
 
         services.AddDbContext<PetWorldDbContext>(options =>
-            options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 36))));
+            options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString), mySqlOptions =>
+                mySqlOptions.EnableRetryOnFailure()));
 
         services.Configure<AgentFrameworkOptions>(configuration.GetSection(AgentFrameworkOptions.SectionName));
 

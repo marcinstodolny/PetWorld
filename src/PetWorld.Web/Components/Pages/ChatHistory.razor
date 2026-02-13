@@ -29,12 +29,10 @@
     }
     else
     {
-        <QuickGrid Items="@_history.AsQueryable()"
-                   Class="table table-striped table-hover align-middle"
-                   Pagination="_pagination">
+        <QuickGrid Items="@_history.AsQueryable()"Class="table table-striped table-hover align-middle"Pagination="_pagination">
             <PropertyColumn Property="@(item => item.CreatedAt)" Title="Data" Format="yyyy-MM-dd HH:mm" Sortable="true" />
-            <PropertyColumn Property="@(item => item.Question)" Title="Pytanie" />
-            <PropertyColumn Property="@(item => item.Answer)" Title="Odpowiedź" />
+            <TemplateColumn Title="Pytanie"><div class="chat-text">@context.Question</div></TemplateColumn>
+            <TemplateColumn Title="Odpowiedź"><div class="chat-text">@context.Answer</div></TemplateColumn>
             <PropertyColumn Property="@(item => item.Iterations)" Title="Liczba iteracji" Sortable="true" />
         </QuickGrid>
 

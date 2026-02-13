@@ -39,15 +39,12 @@ public class Result
 
 public sealed class Result<TValue> : Result
 {
-    private readonly TValue? _value;
-
-    private Result(bool isSuccess, TValue? value, IReadOnlyCollection<string> errors)
-        : base(isSuccess, errors)
+    private Result(bool isSuccess, TValue? value, IReadOnlyCollection<string> errors) : base(isSuccess, errors)
     {
-        _value = value;
+        Value = value;
     }
 
-    public TValue Value => IsFailed ? throw new InvalidOperationException("Cannot access the value of a failed result.") : _value!;
+    public TValue Value => IsFailed ? throw new InvalidOperationException("Cannot access the value of a failed result.") : field!;
 
     public static Result<TValue> Success(TValue value)
     {
