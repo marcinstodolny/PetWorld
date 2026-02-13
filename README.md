@@ -63,14 +63,16 @@ MYSQL_PASSWORD=petworld
 Możesz ustawić klucz także w:
 - `src/PetWorld.Web/appsettings.json` → `AgentFramework:OpenAiApiKey`
 
-> Priorytet: jeśli ustawisz oba, **użyty zostanie `appsettings.json`** (`AgentFramework:OpenAiApiKey`), a dopiero gdy jest pusty – `OPENAI_API_KEY` z .env.
+> Priorytet: jeśli ustawisz wartości i w `appsettings.json`, i w zmiennych środowiskowych, to użyte zostaną wartości z `appsettings.json`.
 
 ### 2) Uruchom aplikację
 
 ```bash
 docker compose up
 ```
+
 Jeśli zmieniłeś kod i chcesz przebudować obraz:
+
 ```bash
 docker compose up --build
 ```
@@ -89,3 +91,36 @@ Po uruchomieniu:
 ```bash
 dotnet test PetWorld.slnx
 ```
+
+Aktualny stan testów:
+- ✅ Unit testy (logika domenowa i bazowe elementy aplikacji).
+- 🟡 Projekt testów integracyjnych istnieje, ale jest na etapie przygotowania i będzie rozwijany w kolejnych iteracjach.
+
+## Status rozwiązania
+
+Aktualna wersja projektu dostarcza działające **MVP** zgodne z głównymi wymaganiami zadania:
+- architektura Onion/Clean,
+- interfejs Blazor Server,
+- workflow Writer-Critic,
+- uruchomienie przez `docker compose up`.
+
+### Aktualne ograniczenia
+
+- Obecnie zaimplementowana i zweryfikowana jest integracja z **OpenAI**.
+- Wsparcie **Azure OpenAI** jest zaplanowane jako kolejny krok.
+
+## Plany dalszego rozwoju
+
+1. **Testy integracyjne (Testcontainers + MySQL)**
+   - uruchamianie bazy MySQL w kontenerze na czas testów,
+   - testowanie kluczowych scenariuszy end-to-end dla warstwy Infrastructure/Application,
+   - walidacja zapisu i odczytu historii rozmów.
+
+2. **Wsparcie Azure OpenAI**
+   - dodanie alternatywnej konfiguracji providera AI,
+   - możliwość przełączania OpenAI / Azure OpenAI przez konfigurację środowiskową,
+   - utrzymanie spójnego kontraktu w warstwie Application.
+
+3. **Rozszerzenie pokrycia testami**
+   - smoke test przepływu Writer-Critic,
+   - testy negatywne dla błędnej konfiguracji kluczy/API.
