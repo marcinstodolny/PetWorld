@@ -1,6 +1,6 @@
 services:
   db:
-    image: mysql:8.0
+    image: mysql:8.0.36
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-admin}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-petworld}
