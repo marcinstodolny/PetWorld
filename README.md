@@ -56,6 +56,7 @@ MYSQL_ROOT_PASSWORD=admin
 MYSQL_DATABASE=petworld
 MYSQL_USER=petworld
 MYSQL_PASSWORD=petworld
+MYSQL_HOST_PORT=3307
 ```
 
 **Opcja B: `appsettings.json` (tylko klucz AI)**
