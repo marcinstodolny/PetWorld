@@ -72,9 +72,14 @@
     private readonly ChatFormModel _chatModel = new();
     private ChatResponse? _lastResponse;
     private bool _isSubmitting;
-    private CancellationTokenSource? _submitCts;
+    private CancellationTokenSource? _pageCts;
     private readonly List<string> _errors = new();
     private const string GenericUserErrorMessage = "Wystąpił problem podczas przetwarzania zapytania. Spróbuj ponownie za chwilę.";
+
+    protected override void OnInitialized()
+    {
+        _pageCts = new CancellationTokenSource();
+    }
 
     private async Task HandleSubmit()
     {
@@ -89,13 +94,9 @@
         _errors.Clear();
         _isSubmitting = true;
 
-        _submitCts?.Cancel();
-        _submitCts?.Dispose();
-        _submitCts = new CancellationTokenSource();
-
         try
         {
-            var result = await AskChatUseCase.ExecuteAsync(new AskChatRequest(question), _submitCts.Token);
+            var result = await AskChatUseCase.ExecuteAsync(new AskChatRequest(question), _pageCts?.Token ?? CancellationToken.None);
 
             if (result.IsFailed)
             {
@@ -106,7 +107,7 @@
             _lastResponse = result.Value;
             _chatModel.Question = string.Empty;
         }
-        catch (OperationCanceledException) when (_submitCts.Token.IsCancellationRequested)
+        catch (OperationCanceledException)
         {
             Logger.LogDebug("Chat request was canceled.");
         }
@@ -123,9 +124,9 @@
 
     public void Dispose()
     {
-        _submitCts?.Cancel();
-        _submitCts?.Dispose();
-        _submitCts = null;
+        _pageCts?.Cancel();
+        _pageCts?.Dispose();
+        _pageCts = null;
     }
 
     private static string GetUserMessage(IEnumerable<string> errors)

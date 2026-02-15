@@ -32,7 +32,7 @@ public sealed class WriterCriticService(
         var apiKey = GetApiKey();
         if (string.IsNullOrWhiteSpace(apiKey))
         {
-            return Result.Fail<WriterCriticResult>("Brak klucza OpenAI. Ustaw AgentFramework:OpenAiApiKey w appsettings lub OPENAI_API_KEY w zmiennych środowiskowych. (README)");
+            return Result.Fail<WriterCriticResult>("Brak klucza OpenAI. Ustaw AgentFramework:OpenAiApiKey w appsettings lub OPENAI_API_KEY w zmiennych środowiskowych. (patrz README)");
         }
 
         return await GenerateResponseInternalAsync(question, products, apiKey, cancellationToken);

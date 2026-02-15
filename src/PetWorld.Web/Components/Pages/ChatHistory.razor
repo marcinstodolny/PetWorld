@@ -59,11 +59,12 @@
     private bool _isLoading = true;
     private IReadOnlyList<ChatHistoryItemResponse> _history = Array.Empty<ChatHistoryItemResponse>();
     private readonly PaginationState _pagination = new() { ItemsPerPage = 10 };
-    private CancellationTokenSource? _loadCts;
+    private CancellationTokenSource? _pageCts;
     private readonly List<string> _errors = new();
 
     protected override async Task OnInitializedAsync()
     {
+        _pageCts = new CancellationTokenSource();
         await LoadHistory();
     }
 
@@ -71,13 +72,9 @@
     {
         _isLoading = true;
 
-        _loadCts?.Cancel();
-        _loadCts?.Dispose();
-        _loadCts = new CancellationTokenSource();
-
         try
         {
-            var result = await GetChatHistoryUseCase.ExecuteAsync(_loadCts.Token);
+            var result = await GetChatHistoryUseCase.ExecuteAsync(_pageCts?.Token ?? CancellationToken.None);
 
             if (result.IsFailed)
             {
@@ -89,7 +86,7 @@
             _history = result.Value;
             _errors.Clear();
         }
-        catch (OperationCanceledException) when (_loadCts.Token.IsCancellationRequested)
+        catch (OperationCanceledException)
         {
             Logger.LogDebug("History refresh was canceled.");
         }
@@ -101,8 +98,8 @@
 
     public void Dispose()
     {
-        _loadCts?.Cancel();
-        _loadCts?.Dispose();
-        _loadCts = null;
+        _pageCts?.Cancel();
+        _pageCts?.Dispose();
+        _pageCts = null;
     }
 }
