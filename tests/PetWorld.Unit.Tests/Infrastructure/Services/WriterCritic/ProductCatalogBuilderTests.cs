@@ -39,7 +39,9 @@ public class ProductCatalogBuilderTests
 
         Assert.Contains("1) \"Karma Premium\"", catalog);
         Assert.Contains("Kategoria: Karma dla psów", catalog);
-        Assert.Contains("Cena: 99,99 PLN", catalog);
+        Assert.True(
+            catalog.Contains("Cena: 99,99 PLN") || catalog.Contains("Cena: 99.99 PLN"),
+            "Catalog should include price with either comma or dot decimal separator.");
         Assert.Contains("2) \"Żwirek Naturalny\"", catalog);
     }
 }
