@@ -1,8 +1,11 @@
 @page "/chat-history"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components.QuickGrid
+@using Microsoft.Extensions.Logging
 @using PetWorld.Application.Models.Response
 @inject PetWorld.Application.UseCases.Chat.GetChatHistoryUseCase GetChatHistoryUseCase
+@inject ILogger<ChatHistory> Logger
+@implements IDisposable
 
 <PageTitle>Historia czatu</PageTitle>
 
@@ -56,34 +59,47 @@
     private bool _isLoading = true;
     private IReadOnlyList<ChatHistoryItemResponse> _history = Array.Empty<ChatHistoryItemResponse>();
     private readonly PaginationState _pagination = new() { ItemsPerPage = 10 };
+    private CancellationTokenSource? _pageCts;
     private readonly List<string> _errors = new();
 
     protected override async Task OnInitializedAsync()
     {
+        _pageCts = new CancellationTokenSource();
         await LoadHistory();
     }
 
     private async Task LoadHistory()
     {
         _isLoading = true;
-        _errors.Clear();
 
         try
         {
-            var result = await GetChatHistoryUseCase.ExecuteAsync();
+            var result = await GetChatHistoryUseCase.ExecuteAsync(_pageCts?.Token ?? CancellationToken.None);
 
             if (result.IsFailed)
             {
-                _history = Array.Empty<ChatHistoryItemResponse>();
+                _errors.Clear();
                 _errors.AddRange(result.Errors);
                 return;
             }
 
             _history = result.Value;
+            _errors.Clear();
+        }
+        catch (OperationCanceledException)
+        {
+            Logger.LogDebug("History refresh was canceled.");
         }
         finally
         {
             _isLoading = false;
         }
+    }
+
+    public void Dispose()
+    {
+        _pageCts?.Cancel();
+        _pageCts?.Dispose();
+        _pageCts = null;
     }
 }

@@ -1,10 +1,13 @@
+using Microsoft.Extensions.Logging;
 using PetWorld.Application.Abstraction.Repository;
 using PetWorld.Application.Models.Response;
 using PetWorld.Domain.Base;
 
 namespace PetWorld.Application.UseCases.Chat;
 
-public sealed class GetChatHistoryUseCase(IChatMessageRepository chatMessageRepository)
+public sealed class GetChatHistoryUseCase(
+    IChatMessageRepository chatMessageRepository,
+    ILogger<GetChatHistoryUseCase> logger)
 {
     public async Task<Result<IReadOnlyList<ChatHistoryItemResponse>>> ExecuteAsync(CancellationToken cancellationToken = default)
     {
@@ -22,12 +25,13 @@ public sealed class GetChatHistoryUseCase(IChatMessageRepository chatMessageRepo
 
             return Result.Success<IReadOnlyList<ChatHistoryItemResponse>>(history);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
         }
-        catch (Exception)
+        catch (Exception exception)
         {
+            logger.LogError(exception, "Failed to load chat history.");
             return Result.Fail<IReadOnlyList<ChatHistoryItemResponse>>("Nie udało się pobrać historii czatu.");
         }
     }
