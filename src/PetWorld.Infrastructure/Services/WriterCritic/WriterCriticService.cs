@@ -26,8 +26,13 @@ public sealed class WriterCriticService(
 
     public const int FeedbackMaxLength = 200;
     public const string DefaultFeedback = "Odpowiedź wymaga poprawy. Ulepsz rekomendacje produktów i dopasuj je do pytania.";
+    private const string ModelUnavailableUserErrorMessage = "Wybrany model jest niedostępny dla tego klucza OpenAI. Wybierz inny model i spróbuj ponownie.";
 
-    public async Task<Result<WriterCriticResult>> GenerateResponseAsync(string question, IReadOnlyList<Product> products, CancellationToken cancellationToken = default)
+    public async Task<Result<WriterCriticResult>> GenerateResponseAsync(
+        string question,
+        IReadOnlyList<Product> products,
+        string? modelOverride = null,
+        CancellationToken cancellationToken = default)
     {
         var apiKey = GetApiKey();
         if (string.IsNullOrWhiteSpace(apiKey))
@@ -35,14 +40,15 @@ public sealed class WriterCriticService(
             return Result.Fail<WriterCriticResult>("Brak klucza OpenAI. Ustaw AgentFramework:OpenAiApiKey w appsettings lub OPENAI_API_KEY w zmiennych środowiskowych. (patrz README)");
         }
 
-        return await GenerateResponseInternalAsync(question, products, apiKey, cancellationToken);
+        var modelToUse = ResolveModel(modelOverride);
+        return await GenerateResponseInternalAsync(question, products, apiKey, modelToUse, cancellationToken);
     }
 
-    private async Task<Result<WriterCriticResult>> GenerateResponseInternalAsync(string question, IReadOnlyList<Product> products, string apiKey, CancellationToken cancellationToken)
+    private async Task<Result<WriterCriticResult>> GenerateResponseInternalAsync(string question, IReadOnlyList<Product> products, string apiKey, string modelToUse, CancellationToken cancellationToken)
     {
         var productCatalog = catalogBuilder.Build(products);
-        var writerAgent = agentFactory.CreateWriterAgent(apiKey);
-        var criticAgent = agentFactory.CreateCriticAgent(apiKey, FeedbackMaxLength);
+        var writerAgent = agentFactory.CreateWriterAgent(apiKey, modelToUse);
+        var criticAgent = agentFactory.CreateCriticAgent(apiKey, modelToUse, FeedbackMaxLength);
 
         string? feedback = null;
         string? lastAnswer = null;
@@ -94,8 +100,52 @@ public sealed class WriterCriticService(
         catch (Exception ex)
         {
             logger.LogError(ex, "AI error. Stage={Stage}, Iteration={Iteration}", agent.Name, iteration);
-            return Result.Fail<string>("Wystąpił błąd usługi AI. Spróbuj ponownie.");
+            return Result.Fail<string>(IsModelUnavailableError(ex) ? ModelUnavailableUserErrorMessage : "Wystąpił błąd usługi AI. Spróbuj ponownie.");
         }
+    }
+
+    private string ResolveModel(string? modelOverride)
+    {
+        if (string.IsNullOrWhiteSpace(modelOverride))
+        {
+            return _options.DefaultModel;
+        }
+
+        var availableModels = GetAvailableModels();
+        var matchedModel = availableModels.FirstOrDefault(model => string.Equals(model, modelOverride, StringComparison.Ordinal));
+
+        return matchedModel ?? _options.DefaultModel;
+    }
+
+    private List<string> GetAvailableModels()
+    {
+        var configured = _options.AvailableModels
+            .Where(model => !string.IsNullOrWhiteSpace(model))
+            .Select(model => model.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        if (configured.Count == 0)
+        {
+            configured.Add(_options.DefaultModel);
+        }
+
+        return configured;
+    }
+
+    private static bool IsModelUnavailableError(Exception ex)
+    {
+        var message = ex.Message;
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return false;
+        }
+
+        return message.Contains("model_not_found", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("model not found", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("not allowed", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("403", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("404", StringComparison.OrdinalIgnoreCase);
     }
 
     private string? GetApiKey()

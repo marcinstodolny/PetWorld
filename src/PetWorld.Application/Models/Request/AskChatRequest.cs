@@ -1,3 +1,3 @@
 namespace PetWorld.Application.Models.Request;
 
-public sealed record AskChatRequest(string Question);
+public sealed record AskChatRequest(string Question, string? Model = null);

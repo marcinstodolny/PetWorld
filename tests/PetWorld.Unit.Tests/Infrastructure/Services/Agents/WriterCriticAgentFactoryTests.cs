@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Options;
-using PetWorld.Infrastructure.Services.WriterCritic;
 using PetWorld.Infrastructure.Services.WriterCritic.Agents;
 using PetWorld.Infrastructure.Services.WriterCritic.Prompts;
 
@@ -12,15 +10,9 @@ public class WriterCriticAgentFactoryTests
     {
         var writerBuilder = new FakeWriterBuilder("writer-instructions");
         var criticBuilder = new FakeCriticBuilder("critic-instructions");
-        var options = Options.Create(new AgentFrameworkOptions
-        {
-            Model = "gpt-4o-mini",
-            OpenAiApiKey = "test-key"
-        });
+        var factory = new WriterCriticAgentFactory(writerBuilder, criticBuilder);
 
-        var factory = new WriterCriticAgentFactory(options, writerBuilder, criticBuilder);
-
-        var agent = factory.CreateWriterAgent("api-key");
+        var agent = factory.CreateWriterAgent("api-key", "gpt-4o-mini");
 
         Assert.Equal("Writer", agent.Name);
         Assert.Equal(1, writerBuilder.BuildInstructionsCalls);
@@ -32,15 +24,9 @@ public class WriterCriticAgentFactoryTests
     {
         var writerBuilder = new FakeWriterBuilder("writer-instructions");
         var criticBuilder = new FakeCriticBuilder("critic-instructions");
-        var options = Options.Create(new AgentFrameworkOptions
-        {
-            Model = "gpt-4o-mini",
-            OpenAiApiKey = "test-key"
-        });
+        var factory = new WriterCriticAgentFactory(writerBuilder, criticBuilder);
 
-        var factory = new WriterCriticAgentFactory(options, writerBuilder, criticBuilder);
-
-        var agent = factory.CreateCriticAgent("api-key", 200);
+        var agent = factory.CreateCriticAgent("api-key", "gpt-4o-mini", 200);
 
         Assert.Equal("Critic", agent.Name);
         Assert.Equal(1, criticBuilder.BuildInstructionsCalls);

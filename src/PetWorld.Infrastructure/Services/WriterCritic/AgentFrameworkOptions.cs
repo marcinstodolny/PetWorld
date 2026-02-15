@@ -5,5 +5,6 @@ public sealed class AgentFrameworkOptions
     public const string SectionName = "AgentFramework";
 
     public string? OpenAiApiKey { get; init; }
-    public string Model { get; init; } = "gpt-5-nano";
+    public string DefaultModel { get; init; } = "gpt-5-nano";
+    public List<string> AvailableModels { get; init; } = [];
 }
