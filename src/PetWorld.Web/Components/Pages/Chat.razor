@@ -72,19 +72,21 @@
     private ChatResponse? _lastResponse;
     private bool _isSubmitting;
     private readonly List<string> _errors = new();
+    private const string GenericUserErrorMessage = "Wystąpił problem podczas przetwarzania zapytania. Spróbuj ponownie za chwilę.";
+    private const string MissingOpenAiConfigurationErrorPrefix = "Brak klucza OpenAI";
+    private const string MissingOpenAiConfigurationUserMessage = "Brak konfiguracji klucza OpenAI. Ustaw OPENAI_API_KEY (patrz README).";
 
     private async Task HandleSubmit()
     {
-        _errors.Clear();
-        _lastResponse = null;
-
         var question = _chatModel.Question.Trim();
         if (string.IsNullOrWhiteSpace(question))
         {
+            _errors.Clear();
             _errors.Add("Pytanie nie może składać się wyłącznie z białych znaków.");
             return;
         }
 
+        _errors.Clear();
         _isSubmitting = true;
 
         try
@@ -93,27 +95,45 @@
 
             if (result.IsFailed)
             {
-                _errors.AddRange(result.Errors);
+                _errors.Add(GetUserMessage(result.Errors));
+                return;
             }
-            else
-            {
-                _lastResponse = result.Value;
-                _chatModel.Question = string.Empty;
-            }
+
+            _lastResponse = result.Value;
+            _chatModel.Question = string.Empty;
         }
         catch (OperationCanceledException)
         {
-            throw;
+            Logger.LogDebug("Chat request was canceled.");
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Unexpected error while processing chat question.");
-            _errors.Add("Wystąpił nieoczekiwany błąd podczas przetwarzania zapytania. Spróbuj ponownie.");
+            _errors.Add(GenericUserErrorMessage);
         }
         finally
         {
             _isSubmitting = false;
         }
+    }
+
+
+    private static string GetUserMessage(IEnumerable<string> errors)
+    {
+        var errorList = errors
+            .Where(error => !string.IsNullOrWhiteSpace(error))
+            .Select(error => error.Trim())
+            .ToList();
+
+        if (errorList.Count == 0)
+        {
+            return GenericUserErrorMessage;
+        }
+
+        var hasMissingOpenAiConfig = errorList.Any(error =>
+            error.StartsWith(MissingOpenAiConfigurationErrorPrefix, StringComparison.OrdinalIgnoreCase));
+
+        return hasMissingOpenAiConfig ? MissingOpenAiConfigurationUserMessage : errorList[0];
     }
 
     private sealed class ChatFormModel

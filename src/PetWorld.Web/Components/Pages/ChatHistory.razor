@@ -1,8 +1,10 @@
 @page "/chat-history"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components.QuickGrid
+@using Microsoft.Extensions.Logging
 @using PetWorld.Application.Models.Response
 @inject PetWorld.Application.UseCases.Chat.GetChatHistoryUseCase GetChatHistoryUseCase
+@inject ILogger<ChatHistory> Logger
 
 <PageTitle>Historia czatu</PageTitle>
 
@@ -66,7 +68,6 @@
     private async Task LoadHistory()
     {
         _isLoading = true;
-        _errors.Clear();
 
         try
         {
@@ -74,12 +75,18 @@
 
             if (result.IsFailed)
             {
-                _history = Array.Empty<ChatHistoryItemResponse>();
+                _errors.Clear();
                 _errors.AddRange(result.Errors);
+
                 return;
             }
 
             _history = result.Value;
+            _errors.Clear();
+        }
+        catch (OperationCanceledException)
+        {
+            Logger.LogDebug("History refresh was canceled.");
         }
         finally
         {

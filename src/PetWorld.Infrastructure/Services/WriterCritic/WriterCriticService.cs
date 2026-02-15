@@ -1,7 +1,6 @@
 using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using OpenAI.Chat;
 using PetWorld.Application.Abstraction.AI;
 using PetWorld.Application.Models;
 using PetWorld.Domain.Base;
@@ -20,7 +19,8 @@ public sealed class WriterCriticService(
     ICriticBuilder criticBuilder,
     IProductCatalogBuilder catalogBuilder,
     ICriticResponseParser criticResponseParser,
-    IWriterCriticAgentFactory agentFactory) : IWriterCriticService
+    IWriterCriticAgentFactory agentFactory,
+    ILogger<WriterCriticService> logger) : IWriterCriticService
 {
     private readonly AgentFrameworkOptions _options = options.Value;
 
@@ -51,7 +51,7 @@ public sealed class WriterCriticService(
         for (var iteration = 1; iteration <= IterationCount.MaxValue; iteration++)
         {
             var writerPrompt = writerBuilder.BuildPrompt(question, productCatalog, feedback);
-            var writerResponseResult = await ExecuteAgentAsync(writerAgent, writerPrompt, iteration, cancellationToken);
+            var writerResponseResult = await ExecuteAgentAsync(writerAgent, writerPrompt, iteration, logger, cancellationToken);
             if (writerResponseResult.IsFailed)
             {
                 return Result.Fail<WriterCriticResult>(writerResponseResult.Errors);
@@ -62,7 +62,7 @@ public sealed class WriterCriticService(
             iterationsCompleted = iteration;
 
             var criticPrompt = criticBuilder.BuildPrompt(question, answer, productCatalog);
-            var criticResponseResult = await ExecuteAgentAsync(criticAgent, criticPrompt, iteration, cancellationToken);
+            var criticResponseResult = await ExecuteAgentAsync(criticAgent, criticPrompt, iteration, logger, cancellationToken);
             if (criticResponseResult.IsFailed)
             {
                 return Result.Fail<WriterCriticResult>(criticResponseResult.Errors);
@@ -80,22 +80,22 @@ public sealed class WriterCriticService(
         return Result.Success(new WriterCriticResult(lastAnswer ?? string.Empty, iterationsCompleted));
     }
 
-    private static async Task<Result<string>> ExecuteAgentAsync(ChatClientAgent agent, string prompt, int iteration, CancellationToken cancellationToken)
+    private static async Task<Result<string>> ExecuteAgentAsync(ChatClientAgent agent, string prompt, int iteration, ILogger<WriterCriticService> logger, CancellationToken cancellationToken)
     {
         try
         {
             var response = await agent.RunAsync(prompt, session: null, options: null, cancellationToken);
             return Result.Success(response.Text);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            var message = $"Operacja przerwana na etapie '{agent.Name}', iteracja {iteration}.";
-            return Result.Fail<string>(message);
+            throw;
         }
         catch (Exception ex)
         {
-            var message = $"Błąd modelu AI na etapie '{agent.Name}', iteracja {iteration}: {ex.Message}";
-            return Result.Fail<string>(message);
+            logger.LogError(ex, "AI error. Stage={Stage}, Iteration={Iteration}", agent.Name, iteration);
+
+            return Result.Fail<string>($"Wystąpił błąd usługi AI na etapie '{agent.Name}' (iteracja {iteration}). Spróbuj ponownie.");
         }
     }
 
