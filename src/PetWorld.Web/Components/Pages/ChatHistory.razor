@@ -29,7 +29,7 @@
     }
     else
     {
-        <QuickGrid Items="@_history.AsQueryable()"Class="table table-striped table-hover align-middle"Pagination="_pagination">
+        <QuickGrid Items="@_history.AsQueryable()" Class="table table-striped table-hover align-middle" Pagination="_pagination">
             <PropertyColumn Property="@(item => item.CreatedAt)" Title="Data" Format="yyyy-MM-dd HH:mm" Sortable="true" />
             <TemplateColumn Title="Pytanie"><div class="chat-text">@context.Question</div></TemplateColumn>
             <TemplateColumn Title="Odpowiedź"><div class="chat-text">@context.Answer</div></TemplateColumn>
@@ -53,7 +53,14 @@
     private async Task LoadHistory()
     {
         _isLoading = true;
-        _history = await GetChatHistoryUseCase.ExecuteAsync();
-        _isLoading = false;
+
+        try
+        {
+            _history = await GetChatHistoryUseCase.ExecuteAsync();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
     }
 }
