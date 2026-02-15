@@ -22,9 +22,13 @@ public sealed class GetChatHistoryUseCase(IChatMessageRepository chatMessageRepo
 
             return Result.Success<IReadOnlyList<ChatHistoryItemResponse>>(history);
         }
-        catch (Exception ex)
+        catch (OperationCanceledException)
         {
-            return Result.Fail<IReadOnlyList<ChatHistoryItemResponse>>($"Nie udało się pobrać historii czatu: {ex.Message}");
+            throw;
+        }
+        catch (Exception)
+        {
+            return Result.Fail<IReadOnlyList<ChatHistoryItemResponse>>("Nie udało się pobrać historii czatu.");
         }
     }
 }
