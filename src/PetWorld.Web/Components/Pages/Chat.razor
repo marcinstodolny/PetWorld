@@ -6,6 +6,7 @@
 @using PetWorld.Application.Models.Response
 @inject PetWorld.Application.UseCases.Chat.AskChatUseCase AskChatUseCase
 @inject ILogger<Chat> Logger
+@implements IDisposable
 
 <PageTitle>Chat z klientem</PageTitle>
 
@@ -71,10 +72,9 @@
     private readonly ChatFormModel _chatModel = new();
     private ChatResponse? _lastResponse;
     private bool _isSubmitting;
+    private CancellationTokenSource? _submitCts;
     private readonly List<string> _errors = new();
     private const string GenericUserErrorMessage = "Wystąpił problem podczas przetwarzania zapytania. Spróbuj ponownie za chwilę.";
-    private const string MissingOpenAiConfigurationErrorPrefix = "Brak klucza OpenAI";
-    private const string MissingOpenAiConfigurationUserMessage = "Brak konfiguracji klucza OpenAI. Ustaw OPENAI_API_KEY (patrz README).";
 
     private async Task HandleSubmit()
     {
@@ -89,9 +89,13 @@
         _errors.Clear();
         _isSubmitting = true;
 
+        _submitCts?.Cancel();
+        _submitCts?.Dispose();
+        _submitCts = new CancellationTokenSource();
+
         try
         {
-            var result = await AskChatUseCase.ExecuteAsync(new AskChatRequest(question));
+            var result = await AskChatUseCase.ExecuteAsync(new AskChatRequest(question), _submitCts.Token);
 
             if (result.IsFailed)
             {
@@ -102,7 +106,7 @@
             _lastResponse = result.Value;
             _chatModel.Question = string.Empty;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (_submitCts.Token.IsCancellationRequested)
         {
             Logger.LogDebug("Chat request was canceled.");
         }
@@ -117,6 +121,12 @@
         }
     }
 
+    public void Dispose()
+    {
+        _submitCts?.Cancel();
+        _submitCts?.Dispose();
+        _submitCts = null;
+    }
 
     private static string GetUserMessage(IEnumerable<string> errors)
     {
@@ -130,10 +140,10 @@
             return GenericUserErrorMessage;
         }
 
-        var hasMissingOpenAiConfig = errorList.Any(error =>
-            error.StartsWith(MissingOpenAiConfigurationErrorPrefix, StringComparison.OrdinalIgnoreCase));
+        var openAiConfigError = errorList.FirstOrDefault(error =>
+            error.Contains("OPENAI_API_KEY", StringComparison.OrdinalIgnoreCase));
 
-        return hasMissingOpenAiConfig ? MissingOpenAiConfigurationUserMessage : errorList[0];
+        return openAiConfigError ?? errorList[0];
     }
 
     private sealed class ChatFormModel

@@ -32,7 +32,7 @@ public sealed class WriterCriticService(
         var apiKey = GetApiKey();
         if (string.IsNullOrWhiteSpace(apiKey))
         {
-            return Result.Fail<WriterCriticResult>("Brak klucza OpenAI. Ustaw AgentFramework:OpenAiApiKey w appsettings lub OPENAI_API_KEY w zmiennych środowiskowych.");
+            return Result.Fail<WriterCriticResult>("Brak klucza OpenAI. Ustaw AgentFramework:OpenAiApiKey w appsettings lub OPENAI_API_KEY w zmiennych środowiskowych. (README)");
         }
 
         return await GenerateResponseInternalAsync(question, products, apiKey, cancellationToken);
@@ -94,8 +94,7 @@ public sealed class WriterCriticService(
         catch (Exception ex)
         {
             logger.LogError(ex, "AI error. Stage={Stage}, Iteration={Iteration}", agent.Name, iteration);
-
-            return Result.Fail<string>($"Wystąpił błąd usługi AI na etapie '{agent.Name}' (iteracja {iteration}). Spróbuj ponownie.");
+            return Result.Fail<string>("Wystąpił błąd usługi AI. Spróbuj ponownie.");
         }
     }
 

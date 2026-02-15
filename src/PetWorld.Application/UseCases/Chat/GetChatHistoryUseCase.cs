@@ -9,8 +9,7 @@ public sealed class GetChatHistoryUseCase(
     IChatMessageRepository chatMessageRepository,
     ILogger<GetChatHistoryUseCase> logger)
 {
-    public async Task<Result<IReadOnlyList<ChatHistoryItemResponse>>> ExecuteAsync(
-        CancellationToken cancellationToken = default)
+    public async Task<Result<IReadOnlyList<ChatHistoryItemResponse>>> ExecuteAsync(CancellationToken cancellationToken = default)
     {
         try
         {
