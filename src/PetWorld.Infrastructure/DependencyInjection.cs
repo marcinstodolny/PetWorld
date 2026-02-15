@@ -6,6 +6,9 @@ using PetWorld.Application.Abstraction.Repository;
 using PetWorld.Infrastructure.Persistence;
 using PetWorld.Infrastructure.Repositories;
 using PetWorld.Infrastructure.Services.WriterCritic;
+using PetWorld.Infrastructure.Services.WriterCritic.Agents;
+using PetWorld.Infrastructure.Services.WriterCritic.Catalog;
+using PetWorld.Infrastructure.Services.WriterCritic.Parsing;
 using PetWorld.Infrastructure.Services.WriterCritic.Prompts;
 
 namespace PetWorld.Infrastructure;
@@ -33,6 +36,9 @@ public static class DependencyInjection
 
         services.AddSingleton<IWriterBuilder, WriterBuilder>();
         services.AddSingleton<ICriticBuilder, CriticBuilder>();
+        services.AddSingleton<IProductCatalogBuilder, ProductCatalogBuilder>();
+        services.AddSingleton<ICriticResponseParser, CriticResponseParser>();
+        services.AddSingleton<IWriterCriticAgentFactory, WriterCriticAgentFactory>();
 
         return services;
     }

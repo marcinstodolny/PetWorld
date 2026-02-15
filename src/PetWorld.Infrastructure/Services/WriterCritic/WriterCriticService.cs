@@ -6,10 +6,10 @@ using PetWorld.Application.Abstraction.AI;
 using PetWorld.Application.Models;
 using PetWorld.Domain.Base;
 using PetWorld.Domain.Entities;
-using PetWorld.Domain.Enums;
 using PetWorld.Domain.ValueObjects;
-using System.Text;
-using System.Text.Json;
+using PetWorld.Infrastructure.Services.WriterCritic.Agents;
+using PetWorld.Infrastructure.Services.WriterCritic.Catalog;
+using PetWorld.Infrastructure.Services.WriterCritic.Parsing;
 using PetWorld.Infrastructure.Services.WriterCritic.Prompts;
 
 namespace PetWorld.Infrastructure.Services.WriterCritic;
@@ -17,13 +17,15 @@ namespace PetWorld.Infrastructure.Services.WriterCritic;
 public sealed class WriterCriticService(
     IOptions<AgentFrameworkOptions> options,
     IWriterBuilder writerBuilder,
-    ICriticBuilder criticBuilder) : IWriterCriticService
+    ICriticBuilder criticBuilder,
+    IProductCatalogBuilder catalogBuilder,
+    ICriticResponseParser criticResponseParser,
+    IWriterCriticAgentFactory agentFactory) : IWriterCriticService
 {
-    private const int FeedbackMaxLength = 200;
-    private const string DefaultFeedback = "Odpowiedź wymaga poprawy. Ulepsz rekomendacje produktów i dopasuj je do pytania.";
     private readonly AgentFrameworkOptions _options = options.Value;
 
-    private static readonly JsonSerializerOptions SJsonOptions = new() { PropertyNameCaseInsensitive = true };
+    public const int FeedbackMaxLength = 200;
+    public const string DefaultFeedback = "Odpowiedź wymaga poprawy. Ulepsz rekomendacje produktów i dopasuj je do pytania.";
 
     public async Task<Result<WriterCriticResult>> GenerateResponseAsync(string question, IReadOnlyList<Product> products, CancellationToken cancellationToken = default)
     {
@@ -38,9 +40,9 @@ public sealed class WriterCriticService(
 
     private async Task<Result<WriterCriticResult>> GenerateResponseInternalAsync(string question, IReadOnlyList<Product> products, string apiKey, CancellationToken cancellationToken)
     {
-        var productCatalog = BuildCatalog(products);
-        var writerAgent = CreateWriterAgent(apiKey);
-        var criticAgent = CreateCriticAgent(apiKey);
+        var productCatalog = catalogBuilder.Build(products);
+        var writerAgent = agentFactory.CreateWriterAgent(apiKey);
+        var criticAgent = agentFactory.CreateCriticAgent(apiKey, FeedbackMaxLength);
 
         string? feedback = null;
         string? lastAnswer = null;
@@ -66,8 +68,8 @@ public sealed class WriterCriticService(
                 return Result.Fail<WriterCriticResult>(criticResponseResult.Errors);
             }
 
-            var (approved, Feedback) = ParseCriticResponse(criticResponseResult.Value);
-            feedback = Feedback;
+            var (approved, parsedFeedback) = criticResponseParser.Parse(criticResponseResult.Value, FeedbackMaxLength, DefaultFeedback);
+            feedback = parsedFeedback;
 
             if (approved)
             {
@@ -97,104 +99,10 @@ public sealed class WriterCriticService(
         }
     }
 
-    private ChatClientAgent CreateWriterAgent(string apiKey)
-    {
-        return CreateChatClient(apiKey)
-            .AsAIAgent(name: "Writer",
-                instructions: writerBuilder.BuildInstructions());
-    }
-
-
-    private ChatClientAgent CreateCriticAgent(string apiKey)
-    {
-        return CreateChatClient(apiKey)
-            .AsAIAgent(
-                name: "Critic",
-                instructions: criticBuilder.BuildInstructions(FeedbackMaxLength));
-    }
-
-
-    private IChatClient CreateChatClient(string apiKey)
-    {
-        return new ChatClient(_options.Model, apiKey).AsIChatClient();
-    }
-
     private string? GetApiKey()
     {
         return string.IsNullOrWhiteSpace(_options.OpenAiApiKey)
             ? Environment.GetEnvironmentVariable("OPENAI_API_KEY")
             : _options.OpenAiApiKey;
     }
-
-    private static (bool Approved, string Feedback) ParseCriticResponse(string response)
-    {
-        try
-        {
-            var json = ExtractJson(response);
-
-            var parsed = JsonSerializer.Deserialize<CriticResponse>(json, SJsonOptions);
-            if (parsed is not null)
-            {
-                var feedback = NormalizeFeedback(parsed.Feedback);
-                return (parsed.Approved, feedback);
-            }
-        }
-        catch (JsonException)
-        {
-            // ignore
-        }
-
-        return (false, DefaultFeedback);
-    }
-
-    private static string NormalizeFeedback(string? feedback)
-    {
-        var normalized = string.IsNullOrWhiteSpace(feedback)
-            ? DefaultFeedback
-            : feedback.Trim();
-
-        return normalized.Length <= FeedbackMaxLength
-            ? normalized
-            : normalized[..FeedbackMaxLength];
-    }
-
-    private static string ExtractJson(string text)
-    {
-        if (string.IsNullOrWhiteSpace(text))
-            throw new JsonException("Empty response.");
-
-        var trimmed = text.Trim();
-
-        while (trimmed.StartsWith("{{") && trimmed.EndsWith("}}"))
-            trimmed = trimmed[1..^1].Trim();
-
-        var start = trimmed.IndexOf('{');
-        var end = trimmed.LastIndexOf('}');
-        if (start < 0 || end <= start)
-            throw new JsonException("No JSON object found.");
-
-        return trimmed.Substring(start, end - start + 1);
-    }
-
-    private static string BuildCatalog(IReadOnlyList<Product> products)
-    {
-        if (products.Count == 0)
-        {
-            return "Brak produktów w katalogu.";
-        }
-
-        var builder = new StringBuilder();
-        var index = 1;
-
-        foreach (var product in products)
-        {
-            builder.AppendLine(
-                $"{index}) \"{product.Name.Value}\" | Kategoria: {product.Category.ToPolish()} | Cena: {product.Price.Amount} {product.Price.Currency} | Opis: {product.Description.Value}");
-            index++;
-        }
-
-        return builder.ToString().Trim();
-    }
-
-    private sealed record CriticResponse(bool Approved, string? Feedback);
 }
