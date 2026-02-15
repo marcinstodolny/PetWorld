@@ -85,19 +85,28 @@
 
         _isSubmitting = true;
 
-        var result = await AskChatUseCase.ExecuteAsync(new AskChatRequest(question));
-
-        if (result.IsFailed)
+        try
         {
-            _errors.AddRange(result.Errors);
-        }
-        else
-        {
-            _lastResponse = result.Value;
-            _chatModel.Question = string.Empty;
-        }
+            var result = await AskChatUseCase.ExecuteAsync(new AskChatRequest(question));
 
-        _isSubmitting = false;
+            if (result.IsFailed)
+            {
+                _errors.AddRange(result.Errors);
+            }
+            else
+            {
+                _lastResponse = result.Value;
+                _chatModel.Question = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            _errors.Add($"Nie udało się przetworzyć zapytania: {ex.Message}");
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
     }
 
     private sealed class ChatFormModel

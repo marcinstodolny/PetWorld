@@ -21,6 +21,18 @@
     {
         <p><em>Ładowanie historii...</em></p>
     }
+    else if (_errors.Count > 0)
+    {
+        <div class="alert alert-danger mb-0" role="alert">
+            <strong>Nie udało się pobrać historii:</strong>
+            <ul class="mb-0 mt-2">
+                @foreach (var error in _errors)
+                {
+                    <li>@error</li>
+                }
+            </ul>
+        </div>
+    }
     else if (_history.Count == 0)
     {
         <div class="alert alert-info mb-0" role="alert">
@@ -44,6 +56,7 @@
     private bool _isLoading = true;
     private IReadOnlyList<ChatHistoryItemResponse> _history = Array.Empty<ChatHistoryItemResponse>();
     private readonly PaginationState _pagination = new() { ItemsPerPage = 10 };
+    private readonly List<string> _errors = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -53,10 +66,20 @@
     private async Task LoadHistory()
     {
         _isLoading = true;
+        _errors.Clear();
 
         try
         {
-            _history = await GetChatHistoryUseCase.ExecuteAsync();
+            var result = await GetChatHistoryUseCase.ExecuteAsync();
+
+            if (result.IsFailed)
+            {
+                _history = Array.Empty<ChatHistoryItemResponse>();
+                _errors.AddRange(result.Errors);
+                return;
+            }
+
+            _history = result.Value;
         }
         finally
         {
