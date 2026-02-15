@@ -1,9 +1,11 @@
 @page "/chat"
 @rendermode InteractiveServer
 @using System.ComponentModel.DataAnnotations
+@using Microsoft.Extensions.Logging
 @using PetWorld.Application.Models.Request
 @using PetWorld.Application.Models.Response
 @inject PetWorld.Application.UseCases.Chat.AskChatUseCase AskChatUseCase
+@inject ILogger<Chat> Logger
 
 <PageTitle>Chat z klientem</PageTitle>
 
@@ -85,19 +87,33 @@
 
         _isSubmitting = true;
 
-        var result = await AskChatUseCase.ExecuteAsync(new AskChatRequest(question));
-
-        if (result.IsFailed)
+        try
         {
-            _errors.AddRange(result.Errors);
-        }
-        else
-        {
-            _lastResponse = result.Value;
-            _chatModel.Question = string.Empty;
-        }
+            var result = await AskChatUseCase.ExecuteAsync(new AskChatRequest(question));
 
-        _isSubmitting = false;
+            if (result.IsFailed)
+            {
+                _errors.AddRange(result.Errors);
+            }
+            else
+            {
+                _lastResponse = result.Value;
+                _chatModel.Question = string.Empty;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unexpected error while processing chat question.");
+            _errors.Add("Wystąpił nieoczekiwany błąd podczas przetwarzania zapytania. Spróbuj ponownie.");
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
     }
 
     private sealed class ChatFormModel

@@ -1,20 +1,34 @@
 using PetWorld.Application.Abstraction.Repository;
 using PetWorld.Application.Models.Response;
+using PetWorld.Domain.Base;
 
 namespace PetWorld.Application.UseCases.Chat;
 
 public sealed class GetChatHistoryUseCase(IChatMessageRepository chatMessageRepository)
 {
-    public async Task<IReadOnlyList<ChatHistoryItemResponse>> ExecuteAsync(CancellationToken cancellationToken = default)
+    public async Task<Result<IReadOnlyList<ChatHistoryItemResponse>>> ExecuteAsync(CancellationToken cancellationToken = default)
     {
-        var messages = await chatMessageRepository.GetHistoryAsync(cancellationToken);
+        try
+        {
+            var messages = await chatMessageRepository.GetHistoryAsync(cancellationToken);
 
-        return messages
-            .Select(message => new ChatHistoryItemResponse(
-                message.CreatedAt,
-                message.Question.Value,
-                message.Answer.Value,
-                message.IterationCount.Value))
-            .ToList();
+            var history = messages
+                .Select(message => new ChatHistoryItemResponse(
+                    message.CreatedAt,
+                    message.Question.Value,
+                    message.Answer.Value,
+                    message.IterationCount.Value))
+                .ToList();
+
+            return Result.Success<IReadOnlyList<ChatHistoryItemResponse>>(history);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            return Result.Fail<IReadOnlyList<ChatHistoryItemResponse>>("Nie udało się pobrać historii czatu.");
+        }
     }
 }
