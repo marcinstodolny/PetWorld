@@ -22,7 +22,7 @@ public sealed class WriterCriticAgentFactory : IWriterCriticAgentFactory
         _criticBuilder = criticBuilder;
 
         _defaultModel = NormalizeDefaultModel(options.Value);
-        _allowedModelsMap = BuildAllowedModelsMap(options.Value, _defaultModel);
+        _allowedModelsMap = BuildAllowedModelsMap(options.Value, _defaultModel) ;
     }
 
     public ChatClientAgent CreateWriterAgent(string apiKey, string? modelOverride = null)
@@ -69,7 +69,7 @@ public sealed class WriterCriticAgentFactory : IWriterCriticAgentFactory
     {
         var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var configuredModel in options.AvailableModels)
+        foreach (var configuredModel in options.AvailableModels ?? [])
         {
             var normalized = configuredModel.Trim();
             if (string.IsNullOrWhiteSpace(normalized))

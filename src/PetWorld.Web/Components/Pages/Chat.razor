@@ -3,11 +3,12 @@
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.Extensions.Logging
 @using PetWorld.Application.Models.Request
-@using Microsoft.Extensions.Configuration
+@using Microsoft.Extensions.Options
 @using PetWorld.Application.Models.Response
+@using PetWorld.Infrastructure.Services.WriterCritic
 @inject PetWorld.Application.UseCases.Chat.AskChatUseCase AskChatUseCase
 @inject ILogger<Chat> Logger
-@inject IConfiguration Configuration
+@inject IOptions<AgentFrameworkOptions> AgentOptions
 @implements IDisposable
 
 <PageTitle>Chat z klientem</PageTitle>
@@ -93,8 +94,10 @@
     {
         _pageCts = new CancellationTokenSource();
 
-        var defaultModel = Configuration["AgentFramework:DefaultModel"] ?? "gpt-5-nano";
-        var configuredModels = Configuration.GetSection("AgentFramework:AvailableModels").Get<List<string>>() ?? [];
+        var defaultModel = AgentOptions.Value.DefaultModel.Trim();
+        var configuredModels = AgentOptions.Value.AvailableModels ?? [];
+
+        _availableModels.Clear();
 
         _availableModels.AddRange(
             configuredModels
@@ -107,10 +110,9 @@
             _availableModels.Add(defaultModel);
         }
 
-        if (!_availableModels.Contains(defaultModel, StringComparer.OrdinalIgnoreCase))
-        {
-            _availableModels.Insert(0, defaultModel);
-        }
+        _availableModels.RemoveAll(model => string.Equals(model, defaultModel, StringComparison.OrdinalIgnoreCase));
+
+        _availableModels.Insert(0, defaultModel);
 
         _chatModel.Model = defaultModel;
     }
