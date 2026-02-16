@@ -29,6 +29,7 @@ public sealed class AskChatUseCase(
         var responseResult = await writerCriticService.GenerateResponseAsync(
             questionResult.Value.Value,
             products,
+            request.Model,
             cancellationToken);
 
         if (responseResult.IsFailed)

@@ -9,5 +9,6 @@ public interface IWriterCriticService
     Task<Result<WriterCriticResult>> GenerateResponseAsync(
         string question,
         IReadOnlyList<Product> products,
+        string? modelOverride = null,
         CancellationToken cancellationToken = default);
 }

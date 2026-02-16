@@ -8,7 +8,9 @@ System udostępnia chat wspierany przez AI (workflow Writer-Critic) oraz histori
 ### 1) Chat z klientem
 - Formularz do wpisania pytania.
 - Przycisk **Wyślij**.
-- Odpowiedź AI wraz z liczbą iteracji Writer-Critic (max 3).
+- Możliwość wyboru modelu z listy rozwijanej (opcjonalnie).
+- Lista modeli pochodzi z `AgentFramework:AvailableModels`, a domyślny wybór z `AgentFramework:DefaultModel`.
+- Odpowiedź AI wraz z liczbą iteracji Writer–Critic (max 3).
 
 ### 2) Historia rozmów
 - Widok tabelaryczny (QuickGrid) z zapisanymi wiadomościami.
@@ -59,12 +61,20 @@ MYSQL_PASSWORD=petworld
 MYSQL_HOST_PORT=3307
 ```
 
-**Opcja B: `appsettings.json` (tylko klucz AI)**
+**Opcja B: `appsettings.json` **
 
 Możesz ustawić klucz także w:
 - `src/PetWorld.Web/appsettings.json` → `AgentFramework:OpenAiApiKey`
 
-> Priorytet: jeśli ustawisz wartości i w `appsettings.json`, i w zmiennych środowiskowych, to użyte zostaną wartości z `appsettings.json`.
+> Priorytet: najpierw używany jest `AgentFramework:OpenAiApiKey`, a jeśli jest pusty, to `OPENAI_API_KEY`.
+
+### Wybór modelu (opcjonalnie)
+
+Na `/chat` dostępna jest lista rozwijana modelu.
+
+Modele konfiguruje się w appsettings.json przez:
+- `AgentFramework:DefaultModel`
+- `AgentFramework:AvailableModels`
 
 ### 2) Uruchom aplikację
 

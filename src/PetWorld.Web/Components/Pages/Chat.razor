@@ -3,9 +3,12 @@
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.Extensions.Logging
 @using PetWorld.Application.Models.Request
+@using Microsoft.Extensions.Options
+@using PetWorld.Application.Configuration
 @using PetWorld.Application.Models.Response
 @inject PetWorld.Application.UseCases.Chat.AskChatUseCase AskChatUseCase
 @inject ILogger<Chat> Logger
+@inject IOptions<AgentFrameworkOptions> AgentOptions
 @implements IDisposable
 
 <PageTitle>Chat z klientem</PageTitle>
@@ -19,6 +22,16 @@
     <EditForm Model="_chatModel" OnValidSubmit="HandleSubmit">
         <DataAnnotationsValidator />
         <ValidationSummary />
+
+        <div class="mb-3">
+            <label class="form-label" for="modelInput">Model</label>
+            <InputSelect id="modelInput" class="form-select" @bind-Value="_chatModel.Model">
+                @foreach (var model in _availableModels)
+                {
+                    <option value="@model">@model</option>
+                }
+            </InputSelect>
+        </div>
 
         <div class="mb-3">
             <label class="form-label" for="questionInput">Pytanie klienta</label>
@@ -74,11 +87,34 @@
     private bool _isSubmitting;
     private CancellationTokenSource? _pageCts;
     private readonly List<string> _errors = new();
+    private readonly List<string> _availableModels = [];
     private const string GenericUserErrorMessage = "Wystąpił problem podczas przetwarzania zapytania. Spróbuj ponownie za chwilę.";
 
     protected override void OnInitialized()
     {
         _pageCts = new CancellationTokenSource();
+
+        var defaultModel = AgentOptions.Value.DefaultModel.Trim();
+        var configuredModels = AgentOptions.Value.AvailableModels ?? [];
+
+        _availableModels.Clear();
+
+        _availableModels.AddRange(
+            configuredModels
+                .Where(model => !string.IsNullOrWhiteSpace(model))
+                .Select(model => model.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase));
+
+        if (_availableModels.Count == 0)
+        {
+            _availableModels.Add(defaultModel);
+        }
+
+        _availableModels.RemoveAll(model => string.Equals(model, defaultModel, StringComparison.OrdinalIgnoreCase));
+
+        _availableModels.Insert(0, defaultModel);
+
+        _chatModel.Model = defaultModel;
     }
 
     private async Task HandleSubmit()
@@ -96,7 +132,7 @@
 
         try
         {
-            var result = await AskChatUseCase.ExecuteAsync(new AskChatRequest(question), _pageCts?.Token ?? CancellationToken.None);
+            var result = await AskChatUseCase.ExecuteAsync(new AskChatRequest(question, _chatModel.Model), _pageCts?.Token ?? CancellationToken.None);
 
             if (result.IsFailed)
             {
@@ -152,5 +188,7 @@
         [Required(ErrorMessage = "Pytanie nie może być puste.")]
         [StringLength(Domain.ValueObjects.Question.MaxLength, ErrorMessage = "Pytanie może mieć maksymalnie {1} znaków.")]
         public string Question { get; set; } = string.Empty;
+
+        public string? Model { get; set; }
     }
 }

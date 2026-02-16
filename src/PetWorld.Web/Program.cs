@@ -1,4 +1,5 @@
 using PetWorld.Application;
+using PetWorld.Application.Configuration;
 using PetWorld.Infrastructure;
 using PetWorld.Web.Components;
 
@@ -13,6 +14,7 @@ namespace PetWorld.Web
             // Add services to the container.
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
+            builder.Services.Configure<AgentFrameworkOptions>(builder.Configuration.GetSection(AgentFrameworkOptions.SectionName));
             builder.Services.AddApplication();
             builder.Services.AddInfrastructure(builder.Configuration);
 
