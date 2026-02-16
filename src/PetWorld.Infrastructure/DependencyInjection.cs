@@ -27,8 +27,6 @@ public static class DependencyInjection
             options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString), mySqlOptions =>
                 mySqlOptions.EnableRetryOnFailure()));
 
-        services.Configure<AgentFrameworkOptions>(configuration.GetSection(AgentFrameworkOptions.SectionName));
-
         services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();

@@ -2,6 +2,7 @@ using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 using OpenAI.Chat;
+using PetWorld.Application.Configuration;
 using PetWorld.Infrastructure.Services.WriterCritic.Prompts;
 
 namespace PetWorld.Infrastructure.Services.WriterCritic.Agents;

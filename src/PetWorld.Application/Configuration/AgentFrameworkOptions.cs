@@ -1,4 +1,4 @@
-namespace PetWorld.Infrastructure.Services.WriterCritic;
+namespace PetWorld.Application.Configuration;
 
 public sealed class AgentFrameworkOptions
 {

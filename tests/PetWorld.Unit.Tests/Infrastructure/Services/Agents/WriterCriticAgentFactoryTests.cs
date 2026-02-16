@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Options;
-using PetWorld.Infrastructure.Services.WriterCritic;
+using PetWorld.Application.Configuration;
 using PetWorld.Infrastructure.Services.WriterCritic.Agents;
 using PetWorld.Infrastructure.Services.WriterCritic.Prompts;
 

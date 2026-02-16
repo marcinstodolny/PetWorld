@@ -4,8 +4,8 @@
 @using Microsoft.Extensions.Logging
 @using PetWorld.Application.Models.Request
 @using Microsoft.Extensions.Options
+@using PetWorld.Application.Configuration
 @using PetWorld.Application.Models.Response
-@using PetWorld.Infrastructure.Services.WriterCritic
 @inject PetWorld.Application.UseCases.Chat.AskChatUseCase AskChatUseCase
 @inject ILogger<Chat> Logger
 @inject IOptions<AgentFrameworkOptions> AgentOptions

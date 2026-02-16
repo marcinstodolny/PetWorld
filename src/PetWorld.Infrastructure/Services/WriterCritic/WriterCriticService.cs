@@ -2,6 +2,7 @@ using Microsoft.Agents.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using PetWorld.Application.Abstraction.AI;
+using PetWorld.Application.Configuration;
 using PetWorld.Application.Models;
 using PetWorld.Domain.Base;
 using PetWorld.Domain.Entities;
