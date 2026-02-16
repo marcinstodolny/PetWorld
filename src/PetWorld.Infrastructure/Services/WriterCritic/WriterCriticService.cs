@@ -40,7 +40,7 @@ public sealed class WriterCriticService(
             return Result.Fail<WriterCriticResult>("Brak klucza OpenAI. Ustaw AgentFramework:OpenAiApiKey w appsettings lub OPENAI_API_KEY w zmiennych środowiskowych. (patrz README)");
         }
 
-        var modelToUse = ResolveModel(modelOverride);
+        var modelToUse = ResolveModelToUse(modelOverride);
         return await GenerateResponseInternalAsync(question, products, apiKey, modelToUse, cancellationToken);
     }
 
@@ -104,48 +104,35 @@ public sealed class WriterCriticService(
         }
     }
 
-    private string ResolveModel(string? modelOverride)
+    private string ResolveModelToUse(string? modelOverride)
     {
-        if (string.IsNullOrWhiteSpace(modelOverride))
+        var normalizedOverride = modelOverride?.Trim();
+        if (string.IsNullOrWhiteSpace(normalizedOverride))
         {
             return _options.DefaultModel;
         }
 
-        var availableModels = GetAvailableModels();
-        var matchedModel = availableModels.FirstOrDefault(model => string.Equals(model, modelOverride, StringComparison.Ordinal));
-
-        return matchedModel ?? _options.DefaultModel;
-    }
-
-    private List<string> GetAvailableModels()
-    {
-        var configured = _options.AvailableModels
+        var allowedModels = (_options.AvailableModels ?? [])
             .Where(model => !string.IsNullOrWhiteSpace(model))
             .Select(model => model.Trim())
-            .Distinct(StringComparer.Ordinal)
-            .ToList();
+            .Append(_options.DefaultModel);
 
-        if (configured.Count == 0)
-        {
-            configured.Add(_options.DefaultModel);
-        }
+        var isAllowed = allowedModels.Any(model =>
+            string.Equals(model, normalizedOverride, StringComparison.OrdinalIgnoreCase));
 
-        return configured;
+        return isAllowed ? normalizedOverride : _options.DefaultModel;
     }
 
     private static bool IsModelUnavailableError(Exception ex)
     {
-        var message = ex.Message;
-        if (string.IsNullOrWhiteSpace(message))
-        {
-            return false;
-        }
+        var message = ex.ToString();
 
         return message.Contains("model_not_found", StringComparison.OrdinalIgnoreCase)
-            || message.Contains("model not found", StringComparison.OrdinalIgnoreCase)
-            || message.Contains("not allowed", StringComparison.OrdinalIgnoreCase)
-            || message.Contains("403", StringComparison.OrdinalIgnoreCase)
-            || message.Contains("404", StringComparison.OrdinalIgnoreCase);
+               || message.Contains("model not found", StringComparison.OrdinalIgnoreCase)
+               || message.Contains("not allowed", StringComparison.OrdinalIgnoreCase)
+               || message.Contains("does not have access", StringComparison.OrdinalIgnoreCase)
+               || message.Contains("status: 403", StringComparison.OrdinalIgnoreCase)
+               || message.Contains("status: 404", StringComparison.OrdinalIgnoreCase);
     }
 
     private string? GetApiKey()
