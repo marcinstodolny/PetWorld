@@ -100,14 +100,14 @@
             configuredModels
                 .Where(model => !string.IsNullOrWhiteSpace(model))
                 .Select(model => model.Trim())
-                .Distinct(StringComparer.Ordinal));
+                .Distinct(StringComparer.OrdinalIgnoreCase));
 
         if (_availableModels.Count == 0)
         {
             _availableModels.Add(defaultModel);
         }
 
-        if (!_availableModels.Contains(defaultModel, StringComparer.Ordinal))
+        if (!_availableModels.Contains(defaultModel, StringComparer.OrdinalIgnoreCase))
         {
             _availableModels.Insert(0, defaultModel);
         }

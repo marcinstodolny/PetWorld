@@ -40,15 +40,14 @@ public sealed class WriterCriticService(
             return Result.Fail<WriterCriticResult>("Brak klucza OpenAI. Ustaw AgentFramework:OpenAiApiKey w appsettings lub OPENAI_API_KEY w zmiennych środowiskowych. (patrz README)");
         }
 
-        var modelToUse = ResolveModelToUse(modelOverride);
-        return await GenerateResponseInternalAsync(question, products, apiKey, modelToUse, cancellationToken);
+        return await GenerateResponseInternalAsync(question, products, apiKey, modelOverride, cancellationToken);
     }
 
-    private async Task<Result<WriterCriticResult>> GenerateResponseInternalAsync(string question, IReadOnlyList<Product> products, string apiKey, string modelToUse, CancellationToken cancellationToken)
+    private async Task<Result<WriterCriticResult>> GenerateResponseInternalAsync(string question, IReadOnlyList<Product> products, string apiKey, string? modelOverride, CancellationToken cancellationToken)
     {
         var productCatalog = catalogBuilder.Build(products);
-        var writerAgent = agentFactory.CreateWriterAgent(apiKey, modelToUse);
-        var criticAgent = agentFactory.CreateCriticAgent(apiKey, modelToUse, FeedbackMaxLength);
+        var writerAgent = agentFactory.CreateWriterAgent(apiKey, modelOverride);
+        var criticAgent = agentFactory.CreateCriticAgent(apiKey, modelOverride, FeedbackMaxLength);
 
         string? feedback = null;
         string? lastAnswer = null;
@@ -104,25 +103,6 @@ public sealed class WriterCriticService(
         }
     }
 
-    private string ResolveModelToUse(string? modelOverride)
-    {
-        var normalizedOverride = modelOverride?.Trim();
-        if (string.IsNullOrWhiteSpace(normalizedOverride))
-        {
-            return _options.DefaultModel;
-        }
-
-        var allowedModels = (_options.AvailableModels ?? [])
-            .Where(model => !string.IsNullOrWhiteSpace(model))
-            .Select(model => model.Trim())
-            .Append(_options.DefaultModel);
-
-        var isAllowed = allowedModels.Any(model =>
-            string.Equals(model, normalizedOverride, StringComparison.OrdinalIgnoreCase));
-
-        return isAllowed ? normalizedOverride : _options.DefaultModel;
-    }
-
     private static bool IsModelUnavailableError(Exception ex)
     {
         var message = ex.ToString();
@@ -137,8 +117,7 @@ public sealed class WriterCriticService(
 
     private string? GetApiKey()
     {
-        return string.IsNullOrWhiteSpace(_options.OpenAiApiKey)
-            ? Environment.GetEnvironmentVariable("OPENAI_API_KEY")
-            : _options.OpenAiApiKey;
+        var configuredApiKey = _options.OpenAiApiKey?.Trim();
+        return !string.IsNullOrWhiteSpace(configuredApiKey) ? configuredApiKey : Environment.GetEnvironmentVariable("OPENAI_API_KEY");
     }
 }
