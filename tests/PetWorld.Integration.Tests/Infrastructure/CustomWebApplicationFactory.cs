@@ -25,7 +25,7 @@ public sealed class CustomWebApplicationFactory(string connectionString) : WebAp
             services.RemoveDbContextRegistration<PetWorldDbContext>();
 
             services.AddDbContext<PetWorldDbContext>(options =>
-                options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+                options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 4, 0))));
 
             services.AddSingleton<IWriterCriticService>(FakeWriterCriticService);
         });
