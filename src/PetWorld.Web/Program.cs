@@ -33,7 +33,10 @@ namespace PetWorld.Web
 
             app.UseAntiforgery();
 
-            app.MapStaticAssets();
+            if (!app.Environment.IsEnvironment("Testing"))
+            {
+                app.MapStaticAssets();
+            }
             app.MapRazorComponents<App>()
                 .AddInteractiveServerRenderMode();
 

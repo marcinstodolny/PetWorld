@@ -23,9 +23,9 @@ public static class DependencyInjection
             throw new InvalidOperationException("Connection string 'PetWorldDatabase' is missing.");
         }
 
+        var serverVersion = new MySqlServerVersion(new Version(8, 4, 0));
         services.AddDbContext<PetWorldDbContext>(options =>
-            options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString), mySqlOptions =>
-                mySqlOptions.EnableRetryOnFailure()));
+            options.UseMySql(connectionString, serverVersion, mySqlOptions => mySqlOptions.EnableRetryOnFailure()));
 
         services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();

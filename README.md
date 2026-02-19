@@ -105,7 +105,8 @@ dotnet test PetWorld.slnx
 
 Aktualny stan testów:
 - ✅ Unit testy (logika domenowa i bazowe elementy aplikacji).
-- 🟡 Projekt testów integracyjnych istnieje, ale jest na etapie przygotowania i będzie rozwijany w kolejnych iteracjach.
+- ✅ Testy integracyjne xUnit z `WebApplicationFactory` + `TestServer`, realnym MySQL przez Testcontainers i resetem bazy przez Respawn.
+- ℹ️ Testy integracyjne wymagają działającego Dockera.
 
 ## Status rozwiązania
 
@@ -122,16 +123,11 @@ Aktualna wersja projektu dostarcza działające **MVP** zgodne z głównymi wyma
 
 ## Plany dalszego rozwoju
 
-1. **Testy integracyjne (Testcontainers + MySQL)**
-   - uruchamianie bazy MySQL w kontenerze na czas testów,
-   - testowanie kluczowych scenariuszy end-to-end dla warstwy Infrastructure/Application,
-   - walidacja zapisu i odczytu historii rozmów.
-
-2. **Wsparcie Azure OpenAI**
+1. **Wsparcie Azure OpenAI**
    - dodanie alternatywnej konfiguracji providera AI,
    - możliwość przełączania OpenAI / Azure OpenAI przez konfigurację środowiskową,
    - utrzymanie spójnego kontraktu w warstwie Application.
 
-3. **Rozszerzenie pokrycia testami**
+2. **Rozszerzenie pokrycia testami**
    - smoke test przepływu Writer-Critic,
    - testy negatywne dla błędnej konfiguracji kluczy/API.
