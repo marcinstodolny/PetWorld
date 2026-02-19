@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - development
+  pull_request:
+    branches:
+      - main
+      - development
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup .NET SDK 10.0
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Verify Docker access
+        run: docker info
+
+      - name: Test
+        env:
+          DOTNET_ENVIRONMENT: Testing
+          ASPNETCORE_ENVIRONMENT: Testing
+        run: |
+          dotnet test tests/PetWorld.Unit.Tests/PetWorld.Unit.Tests.csproj
+          dotnet test tests/PetWorld.Integration.Tests/PetWorld.Integration.Tests.csproj
