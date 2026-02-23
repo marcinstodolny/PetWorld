@@ -14,7 +14,21 @@ namespace PetWorld.Web
             // Add services to the container.
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
-            builder.Services.Configure<AgentFrameworkOptions>(builder.Configuration.GetSection(AgentFrameworkOptions.SectionName));
+            builder.Services
+                .AddOptions<AgentFrameworkOptions>()
+                .BindConfiguration(AgentFrameworkOptions.SectionName)
+                .PostConfigure(options =>
+                {
+                    if (options.AvailableModels.Count == 0)
+                    {
+                        options.AvailableModels.Add(options.DefaultModel);
+                    }
+
+                })
+                .Validate(options => !string.IsNullOrWhiteSpace(options.DefaultModel), "DefaultModel is required.")
+                .Validate(options => options.AvailableModels is { Count: > 0 }, "AvailableModels must contain at least one model.")
+                .Validate(options => options.AvailableModels.Contains(options.DefaultModel, StringComparer.OrdinalIgnoreCase), "DefaultModel must be included in AvailableModels.")
+                .ValidateOnStart();
             builder.Services.AddApplication();
             builder.Services.AddInfrastructure(builder.Configuration);
 
