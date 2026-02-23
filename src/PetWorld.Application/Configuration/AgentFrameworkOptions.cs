@@ -6,5 +6,5 @@ public sealed class AgentFrameworkOptions
 
     public string? OpenAiApiKey { get; init; }
     public string DefaultModel { get; init; } = "gpt-5-nano";
-    public List<string> AvailableModels { get; init; } = [];
+    public List<string> AvailableModels { get; init; } = ["gpt-5-nano"];
 }
