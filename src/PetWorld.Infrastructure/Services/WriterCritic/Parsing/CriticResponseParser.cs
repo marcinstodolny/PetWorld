@@ -1,8 +1,10 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using PetWorld.Domain.Base;
 
 namespace PetWorld.Infrastructure.Services.WriterCritic.Parsing;
 
-public sealed class CriticResponseParser : ICriticResponseParser
+public sealed class CriticResponseParser(ILogger<CriticResponseParser> logger) : ICriticResponseParser
 {
     private static readonly JsonSerializerOptions SJsonOptions = new() { PropertyNameCaseInsensitive = true };
 
@@ -11,17 +13,21 @@ public sealed class CriticResponseParser : ICriticResponseParser
         try
         {
             var json = ExtractJson(response);
+            if (json.IsFailed)
+            {
+                return (false, defaultFeedback);
+            }
 
-            var parsed = JsonSerializer.Deserialize<CriticResponse>(json, SJsonOptions);
+            var parsed = JsonSerializer.Deserialize<CriticResponse>(json.Value, SJsonOptions);
             if (parsed is not null)
             {
                 var feedback = NormalizeFeedback(parsed.Feedback, feedbackMaxLength, defaultFeedback);
                 return (parsed.Approved, feedback);
             }
         }
-        catch (JsonException)
+        catch (JsonException exception)
         {
-            // ignore
+            logger.LogWarning(exception, "Critic response JSON deserialization failed.");
         }
 
         return (false, defaultFeedback);
@@ -38,10 +44,10 @@ public sealed class CriticResponseParser : ICriticResponseParser
             : normalized[..feedbackMaxLength];
     }
 
-    private static string ExtractJson(string text)
+    private static Result<string> ExtractJson(string text)
     {
         if (string.IsNullOrWhiteSpace(text))
-            throw new JsonException("Empty response.");
+            return Result<string>.Fail("Response is empty.");
 
         var trimmed = text.Trim();
 
@@ -51,9 +57,9 @@ public sealed class CriticResponseParser : ICriticResponseParser
         var start = trimmed.IndexOf('{');
         var end = trimmed.LastIndexOf('}');
         if (start < 0 || end <= start)
-            throw new JsonException("No JSON object found.");
+            return Result<string>.Fail("Response does not contain valid JSON.");
 
-        return trimmed.Substring(start, end - start + 1);
+        return Result.Success(trimmed.Substring(start, end - start + 1));
     }
 
     private sealed record CriticResponse(bool Approved, string? Feedback);
