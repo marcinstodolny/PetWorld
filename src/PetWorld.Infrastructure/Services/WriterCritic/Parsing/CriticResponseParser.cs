@@ -1,9 +1,10 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using PetWorld.Domain.Base;
 
 namespace PetWorld.Infrastructure.Services.WriterCritic.Parsing;
 
-public sealed class CriticResponseParser : ICriticResponseParser
+public sealed class CriticResponseParser(ILogger<CriticResponseParser> logger) : ICriticResponseParser
 {
     private static readonly JsonSerializerOptions SJsonOptions = new() { PropertyNameCaseInsensitive = true };
 
@@ -24,9 +25,9 @@ public sealed class CriticResponseParser : ICriticResponseParser
                 return (parsed.Approved, feedback);
             }
         }
-        catch (JsonException)
+        catch (JsonException exception)
         {
-            // ignore
+            logger.LogWarning(exception, "Critic response JSON deserialization failed.");
         }
 
         return (false, defaultFeedback);
